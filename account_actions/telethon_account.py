@@ -16,6 +16,7 @@ class TelethonAccount(Account):
         super().__init__(task_limit)
         self._client = client
         self._entities = {}
+        
     async def run_task(self, wrapped_func):
         async with self._task_limit:
 

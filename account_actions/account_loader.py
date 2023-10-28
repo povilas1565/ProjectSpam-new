@@ -6,13 +6,16 @@ import os
 import telethon
 import asyncio
 from loguru import logger
+from pydantic import BaseModel
+
+class AccountLoginResult(BaseModel):
+    account_path: str
+    error: str | None
 
 class AccountsLoader:
-    def __init__(self, base_path, load_callback, error_callback, limit: asyncio.Semaphore):
+
+    def __init__(self, limit: asyncio.Semaphore):
         self._limit = limit
-        self._callback = load_callback
-        self._error_callback = error_callback
-        self._accounts_path = base_path
 
     async def login_to_account(self, account_path):
 
