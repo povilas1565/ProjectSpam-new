@@ -1,0 +1,14 @@
+# DATA PATHS
+
+ACCOUNTS_PATH = "./data/common/accounts"
+LINKS_PATH = "./data/common/links.txt"
+PHOTOS_PATH = "./data/photos"
+
+# BOT SETTINGS
+
+BOT_TOKEN = "6965634450:AAHbdCsWqhqNPbeOuNf9RAzO1maU0ifXQ8U"
+
+# DELAYS
+
+DELAYS_BETWEEN_CHANNELS = 10
+DELAYS_IN_CHANNEL = 12
