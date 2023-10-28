@@ -16,6 +16,7 @@ from advertisement_manager import AdvertisementManager
 from models.advertisement import AdvertisementCreateStatus
 from adv_distributor import AdvDistributor
 from yandex_disk_manager import YandexDiskManager
+from archive_manager import ArchiveManager
 
 bot = Bot(token=settings.BOT_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
@@ -119,12 +120,15 @@ async def get_zip_links(message: types.Message, state: FSMContext):
 
         await message.answer("Аккаунты загружены. Распаковываем...")
 
-        with zipfile.ZipFile(f"{settings.ACCOUNTS_PATH}/tmp.zip", 'r') as zip_ref:
-            zip_ref.extractall(f"{settings.ACCOUNTS_PATH}/ready/")
-
-        await message.answer(
-            f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}")
-
+        try:
+            folders = ArchiveManager.unzip(f"{settings.ACCOUNTS_PATH}/tmp.zip", f"{settings.ACCOUNTS_PATH}/ready/")
+            await message.answer(
+            f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}\n\nПодгружаем аккаунты...")
+            distributor.add_account(folders)
+            await message.answer(f"Аккаунты подгружены в работу")
+        except Exception as e:
+            await message.answer(f"Не можем распаковать архив: {e}")
+        
         return await command_start(message, state)
     
     else:
@@ -162,14 +166,15 @@ async def get_zip_links(message: types.Message, state: FSMContext):
 
     if await YandexDiskManager.download_file(message.text, f"{settings.ACCOUNTS_PATH}/tmp.zip"):
 
-        await message.answer("Аккаунты загружены. Распаковываем...")
-
-        with zipfile.ZipFile(f"{settings.ACCOUNTS_PATH}/tmp.zip", 'r') as zip_ref:
-            zip_ref.extractall(f"{settings.ACCOUNTS_PATH}/ready/")
-
-        await message.answer(
-            f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}")
-
+        try:
+            folders = ArchiveManager.unzip(f"{settings.ACCOUNTS_PATH}/tmp.zip", f"{settings.ACCOUNTS_PATH}/ready/")
+            await message.answer(
+            f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}\n\nПодгружаем аккаунты...")
+            distributor.add_account(folders)
+            await message.answer(f"Аккаунты подгружены в работу")
+        except Exception as e:
+            await message.answer(f"Не можем распаковать архив: {e}")
+            
         return await command_start(message, state)
     
     else:
