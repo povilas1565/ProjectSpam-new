@@ -35,6 +35,7 @@ class AdvDistributor(metaclass=Singleton):
 
         self.ad_status = {}
         self._free_accounts = deque()
+        self._ad_items = {}
 
     async def _on_account_loaded(self):
         res = await self.store.get_accounts()
@@ -51,8 +52,9 @@ class AdvDistributor(metaclass=Singleton):
                            adv_item=item)
 
             self.ad_status[int(m.adv_item.id)] = True
+            self._ad_items[int(m.adv_item.id)] = m
 
-            asyncio.create_task(self._run_for_account(m))
+            asyncio.create_task(self._run_for_account(int(m.adv_item.id)))
 
     async def on_ad_removed(self, item_id):
         logger.info(f"Set {item_id} to false")
@@ -74,7 +76,9 @@ class AdvDistributor(metaclass=Singleton):
         results = await self.store.add_account(res)
         for result in results:
             if result.error is None:
-                await self._on_account_loaded()
+                res = await self.store.get_accounts()
+                for r in res:
+                    self._free_accounts.append(r)
 
     async def add_account(self, path):
         results = await self.store.add_account(path)
@@ -83,36 +87,43 @@ class AdvDistributor(metaclass=Singleton):
                 await self._on_account_loaded()
         return results
 
-    async def _run_for_account(self, item: AdvRunItem):
+    async def _run_for_account(self, item_id):
         
         while True:
             lines = common_tools.read_file(settings.LINKS_PATH)
 
             for line in lines:
 
-                res = self.ad_status[int(item.adv_item.id)]
+                item = self._ad_items.get(item_id, None)
 
-                logger.info(f"Working on {int(item.adv_item.id)} ad, status: {res}")
+                if item is not None:
 
-                if not res:
-                    logger.success(f"Account id: {item.account_id} is stopped")
-                    self._free_accounts.append(item.account_id)
-                    return
+                    res = self.ad_status[int(item.adv_item.id)]
 
-                account = await self.store.get_account(item.account_id)
+                    logger.info(f"Working on {int(item.adv_item.id)} ad, status: {res}")
 
-                try:
-                    await account.follow_to(line)
-                    await asyncio.sleep(5)
-                except Exception as e:
-                    logger.warning(e)
+                    if not res:
+                        logger.success(f"Account id: {item.account_id} is stopped")
+                        self._free_accounts.append(item.account_id)
+                        del self._ad_items[int(item_id)] 
+                        return
 
-                try:
-                    await account.send_message_to(line, item.adv_item.text, item.adv_item.photos)
-                except Exception as e:
-                    logger.warning(e)
+                    account = await self.store.get_account(item.account_id)
 
-                await asyncio.sleep(settings.DELAYS_BETWEEN_CHANNELS)
+                    try:
+                        await account.follow_to(line)
+                        await asyncio.sleep(5)
+                    except Exception as e:
+                        logger.warning(e)
+
+                    try:
+                        await account.send_message_to(line, item.adv_item.text, item.adv_item.photos)
+                    except Exception as e:
+                        logger.warning(e)
+
+                    await asyncio.sleep(settings.DELAYS_BETWEEN_CHANNELS)
+                else:
+                    logger.info(f"Item for item_id {item_id} is None")
 
             await asyncio.sleep(settings.DELAYS_IN_CHANNEL)
 
@@ -134,5 +145,6 @@ class AdvDistributor(metaclass=Singleton):
                                adv_item=item)
 
                 self.ad_status[int(m.adv_item.id)] = True
+                self._ad_items[int(m.adv_item.id)] = m
 
-                asyncio.create_task(self._run_for_account(m))
+                asyncio.create_task(self._run_for_account(int(m.adv_item.id)))
