@@ -23,14 +23,8 @@ dp = Dispatcher()
 
 adv_manager = AdvertisementManager()
 
-async def on_loaded(path):
-    print(path)
 
-async def on_error(path, p):
-    print(path)
-
-
-distributor = AdvDistributor(on_loaded, on_error)
+distributor = AdvDistributor()
 
 @dp.message(F.text.lower() == "отмена")
 async def cancel(message: types.Message, state: FSMContext):
@@ -124,8 +118,13 @@ async def get_zip_links(message: types.Message, state: FSMContext):
             folders = ArchiveManager.unzip(f"{settings.ACCOUNTS_PATH}/tmp.zip", f"{settings.ACCOUNTS_PATH}/ready/")
             await message.answer(
             f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}\n\nПодгружаем аккаунты...")
-            distributor.add_account(folders)
-            await message.answer(f"Аккаунты подгружены в работу")
+            results = await distributor.add_account(folders)
+
+            for result in results:
+                if result.error is not None:
+                    await message.answer(f"Ошибка подгрузки аккаунта {result.path}: {result.error}")
+
+            await message.answer(f"Текущее количество аккаунтов в работе: {distributor.store.get_accounts_count()}")
         except Exception as e:
             await message.answer(f"Не можем распаковать архив: {e}")
         
@@ -170,8 +169,11 @@ async def get_zip_links(message: types.Message, state: FSMContext):
             folders = ArchiveManager.unzip(f"{settings.ACCOUNTS_PATH}/tmp.zip", f"{settings.ACCOUNTS_PATH}/ready/")
             await message.answer(
             f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}\n\nПодгружаем аккаунты...")
-            distributor.add_account(folders)
-            await message.answer(f"Аккаунты подгружены в работу")
+            results = await distributor.add_account(folders)
+            for result in results:
+                if result.error is not None:
+                    await message.answer(f"Ошибка подгрузки аккаунта {result.path}: {result.error}")
+            await message.answer(f"Текущее количество аккаунтов в работе: {distributor.store.get_accounts_count()}")
         except Exception as e:
             await message.answer(f"Не можем распаковать архив: {e}")
             

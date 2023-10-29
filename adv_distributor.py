@@ -28,23 +28,17 @@ class Singleton(type):
 
 
 class AdvDistributor(metaclass=Singleton):
-    def __init__(self, on_load_callback, on_error_callback):
-        self._loaded_callback = on_load_callback
-        self._error_callback = on_error_callback
-
-        self._store = AccountsStore(max_login_accounts=1,
-                                    entered_callback=self._on_account_loaded,
-                                    fail_enter_callback=on_error_callback)
+    def __init__(self):
+        self.store = AccountsStore(max_login_accounts=1)
 
         self._adv_manager = AdvertisementManager()
 
         self.ad_status = {}
         self._free_accounts = deque()
 
-    async def _on_account_loaded(self, path):
-        res = await self._store.get_accounts()
+    async def _on_account_loaded(self):
+        res = await self.store.get_accounts()
         self._free_accounts.append(res[-1])
-        await self._loaded_callback(path)
 
     async def on_ad_added(self, item: AdvertisementItem):
         account_id = self._free_accounts.pop()
@@ -65,15 +59,18 @@ class AdvDistributor(metaclass=Singleton):
         self.ad_status[int(item_id)] = False
     
     async def unload_accounts(self):
-        await self._store.unload_accounts()
+        await self.store.unload_accounts()
 
     async def reload(self):
-        await self._store.unload_accounts()
+        await self.store.unload_accounts()
         res = common_tools.get_files_in_dir(f'{settings.ACCOUNTS_PATH}/ready')
-        await self._store.add_account(res)
+        results = await self.store.add_account(res)
+        for result in results:
+            if result.error is None:
+                await self._on_account_loaded()
 
     async def add_account(self, path):
-        await self._store.add_account(path)
+        return await self.store.add_account(path)
 
     async def _run_for_account(self, item: AdvRunItem):
         
@@ -91,7 +88,7 @@ class AdvDistributor(metaclass=Singleton):
                     self._free_accounts.append(item.account_id)
                     return
 
-                account = await self._store.get_account(item.account_id)
+                account = await self.store.get_account(item.account_id)
 
                 try:
                     await account.follow_to(line)

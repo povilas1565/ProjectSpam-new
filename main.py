@@ -24,8 +24,7 @@ text = """Сдаётся в долгосрочную аренду квартир
 WhatsApp +34 641428185"""
 
 async def main():
-    loader = AccountsLoader(base_path="", load_callback=onload,
-                            error_callback=onerror, limit=asyncio.Semaphore(1))
+    loader = AccountsLoader(limit=asyncio.Semaphore(1))
 
     client = await loader.login_to_account(account_path)
 

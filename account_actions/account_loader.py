@@ -8,9 +8,12 @@ import asyncio
 from loguru import logger
 from pydantic import BaseModel
 
+
 class AccountLoginResult(BaseModel):
-    account_path: str
+    client: dict = None
+    account_path: str = None
     error: str | None
+
 
 class AccountsLoader:
 
@@ -21,6 +24,10 @@ class AccountsLoader:
 
         tdataFolder = f"{account_path}/tdata"
 
+        result = AccountLoginResult()
+
+        result.account_path = account_path
+
         try:
 
             logger.info(f"Подгружаем tdata {tdataFolder}")
@@ -29,39 +36,34 @@ class AccountsLoader:
 
             client = await TelegramClient.FromTDesktop(
                 tdesk, session=f"{account_path}\\telethon.session", flag=UseCurrentSession)
-                                
+
             async with self._limit:
 
                 await client.connect()
-                
+
                 info = await client.get_me()
-                
+
                 await client.PrintSessions()
 
                 client = {"client": client, "id": info.id,
-                        "username": info.username, "path": account_path}
+                          "username": info.username, "path": account_path}
 
-            if self._callback:
-                await self._callback(account_path, client)
+                result.client = client
+                result.error = None
 
-            return client
+            return result
 
         except OpenTeleException as e:
-            if self._error_callback:
-                await self._error_callback(account_path, str(e))
+            result.error = str(e)
 
         except RuntimeError as e:
-            if self._error_callback:
-                await self._error_callback(account_path, str(e))
-            
+            result.error = str(e)
+
         except telethon.errors.rpcerrorlist.AuthKeyDuplicatedError as e:
-            
-            if self._error_callback:
-                await self._error_callback(account_path, str(e))
+            result.error = str(e)
 
         except Exception as e:
 
-            if self._error_callback:
-                await self._error_callback(str(tdataFolder), str(e))
+            result.error = str(e)
 
-        return None
+        return result
