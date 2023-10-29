@@ -13,6 +13,7 @@ class Menu:
         [
             
             types.KeyboardButton(text="Добавить аккаунты"),
+            types.KeyboardButton(text="Статус аккаунтов"),
             types.KeyboardButton(text="Обновить список аккаунтов"),
         ],
     ]

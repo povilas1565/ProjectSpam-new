@@ -28,7 +28,7 @@ class AccountsStore:
             try:
                 result = self._accounts[account]
                 if result:
-                    result['client'].session.close()
+                    result._client['client'].session.close()
                     del self._accounts[account]
             except Exception as e:
                 logger.error(f"Error: {e}")
