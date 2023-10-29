@@ -38,7 +38,7 @@ class AdvDistributor(metaclass=Singleton):
         self._ad_items = {}
 
     async def _on_account_loaded(self):
-        res = await self.store.get_accounts()
+        res = await self.store.get_accounts() # TODO добавляется лишь последний акк, если добавлять 2 подряд - добавится только один
         self._free_accounts.append(res[-1])
 
     async def on_ad_added(self, item: AdvertisementItem):
