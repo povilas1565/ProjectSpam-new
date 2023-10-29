@@ -70,7 +70,11 @@ class AdvDistributor(metaclass=Singleton):
                 await self._on_account_loaded()
 
     async def add_account(self, path):
-        return await self.store.add_account(path)
+        results = await self.store.add_account(path)
+        for result in results:
+            if result.error is None:
+                await self._on_account_loaded()
+        return results
 
     async def _run_for_account(self, item: AdvRunItem):
         
@@ -110,7 +114,10 @@ class AdvDistributor(metaclass=Singleton):
 
         for item in items:
 
-            account_id = self._free_accounts.pop()
+            try:
+                account_id = self._free_accounts.pop()
+            except Exception as e:
+                account_id = None
 
             if account_id is None:
                 logger.critical(f"Cannot attach account is {account_id}")
