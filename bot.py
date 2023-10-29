@@ -17,6 +17,7 @@ from models.advertisement import AdvertisementCreateStatus
 from adv_distributor import AdvDistributor
 from yandex_disk_manager import YandexDiskManager
 from archive_manager import ArchiveManager
+import common_tools
 
 bot = Bot(token=settings.BOT_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
@@ -28,30 +29,30 @@ distributor = AdvDistributor()
 
 @dp.message(F.text.lower() == "отмена")
 async def cancel(message: types.Message, state: FSMContext):
-    await state.set_state(states.MainMenu.menu)
-    await message.answer(
-        "Действие отменено. Что хотите сделать?",
-        reply_markup=types.ReplyKeyboardMarkup(
-            keyboard=buttons.Menu.main_menu,
-            resize_keyboard=True,
-        )
-    )
+   await message.answer(f"Действие отменено")
+   return await command_start(message, state)
 
 
 @dp.message(F.text.lower() == "статус объявлений")
 async def ad_remove(message: types.Message, state: FSMContext):
     current_list = adv_manager.get_all_advertisement()
 
-    text = f""
+    links = common_tools.read_file(settings.LINKS_PATH)
 
-    for item in current_list:
-        status = "В работе" if distributor.ad_status[item.id] else "Простаивает"
-        text += f"{item.id}. Название объявления: {item.name} | Статус: {status}\n"
+    if len(links) > 0:
 
-    if len(text) > 1:
-        await message.answer(text)
+        text = f""
+
+        for item in current_list:
+            status = "В работе" if distributor.ad_status[item.id] else "Простаивает"
+            text += f"{item.id}. Название объявления: {item.name} | Статус: {status}\n"
+
+        if len(text) > 1:
+            await message.answer(text)
+        else:
+            await message.answer(f"В работе объявлений нет")
     else:
-        await message.answer(f"В работе объявлений нет")
+        await message.answer(f"Ошибка: список ссылок не загружен. Не можем запустить объявления в работу")
 
     return await command_start(message, state)
 
@@ -187,12 +188,17 @@ async def get_zip_links(message: types.Message, state: FSMContext):
             for folder in folders:
                 result_folders.append(f'{settings.ACCOUNTS_PATH}/ready/{folder}')
 
+            
+            await message.answer(f"Перезагружаем менеджер рекламы...")
+            await distributor.reset()
+
             results = await distributor.add_account(result_folders)
 
             for result in results:
                 if result.error is not None:
                     await message.answer(f"Ошибка подгрузки аккаунта {result.account_path}: {result.error}")
             await message.answer(f"Текущее количество аккаунтов в работе: {await distributor.store.get_accounts_count()}")
+
         except Exception as e:
             await message.answer(f"Не можем распаковать архив: {e}")
             
@@ -375,6 +381,7 @@ async def download_photos(message: types.Message, state: FSMContext):
 
 @dp.message(Command("start"))
 async def command_start(message: types.Message, state: FSMContext) -> None:
+    await state.clear()
     await state.set_state(states.MainMenu.menu)
     await message.answer(
         "Что вы хотите сделать?",

@@ -61,6 +61,13 @@ class AdvDistributor(metaclass=Singleton):
     async def unload_accounts(self):
         await self.store.unload_accounts()
 
+    async def reset(self):
+        await self.store.unload_accounts()
+        self._free_accounts.clear()
+        for key, value in self.ad_status.keys():
+            self.ad_status[key] = False
+
+
     async def reload(self):
         await self.store.unload_accounts()
         res = common_tools.get_files_in_dir(f'{settings.ACCOUNTS_PATH}/ready')
