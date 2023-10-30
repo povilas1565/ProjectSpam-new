@@ -1,5 +1,6 @@
 import glob
 from loguru import logger
+import aiohttp
 
 def get_files_in_dir(dir):
     return glob.glob(f"{dir}/*")
@@ -21,3 +22,11 @@ def get_index_default(target: list, index: int):
     except Exception as e:
         logger.warning(f"List {target=} with {index=} is empty")
         return None
+
+async def make_get_request(url):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                logger.success(f"Url: {url} | {resp.status}")
+    except Exception as e:
+        logger.warning(e)

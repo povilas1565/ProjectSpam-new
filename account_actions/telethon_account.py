@@ -94,6 +94,7 @@ class TelethonAccount(Account):
         else:
             logger.error(
                 f"cannot send message to {receiver}. Entity is: {entity}")
+            raise Exception("cannot send message to {receiver}. Entity is: {entity}")
 
     async def get_follows(self):
         print("get follows")

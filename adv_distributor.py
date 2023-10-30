@@ -8,7 +8,7 @@ import settings
 from loguru import logger
 import asyncio
 import enum
-from collections import deque
+from telegram_chat_logger import TelegramChatLogger
 
 
 class AdvRunItemStatus(int, enum.Enum):
@@ -61,6 +61,8 @@ class AdvDistributor(metaclass=Singleton):
             await account.send_message_to(recipient, item.adv_item.text, item.adv_item.photos)
         except Exception as e:
             logger.warning(e)
+            await TelegramChatLogger.send_message_to_chat(
+                message=f"Не можем отправить сообщение пользователю {recipient}: {e}")
 
     async def run(self):
         while True:
@@ -71,7 +73,7 @@ class AdvDistributor(metaclass=Singleton):
             for i, x in enumerate(list(self.run_items_info)):
                 accounts = await self.store.get_accounts()
                 try:
-                    account = common_tools.get_index_default(accounts, 0)
+                    account = common_tools.get_index_default(accounts, i)
 
                     res_item = self.run_items_info[x]
 
@@ -87,11 +89,18 @@ class AdvDistributor(metaclass=Singleton):
                                 await asyncio.sleep(3)
                         else:
                             res_item.status = AdvRunItemStatus.LINKS_NOT_FOUND
+                            await TelegramChatLogger.send_message_to_chat(
+                                message=f"Не можем отправить объявление {res_item.adv_item.name}: список ссылок не найден")
 
                         await asyncio.sleep(1)
 
                     else:
                         res_item.status = AdvRunItemStatus.NOT_ENOUGH_ACCOUNT
+
+                        await TelegramChatLogger.send_message_to_chat(
+                            message=f"Не можем отправить объявление {res_item.adv_item.name}: недостаточно аккаунтов")
+
+                        await asyncio.sleep(15)
 
                 except Exception as e:
                     logger.critical(f"Cannot send with id: {x}: {e}")
