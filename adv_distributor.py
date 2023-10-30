@@ -49,6 +49,8 @@ class AdvDistributor(metaclass=Singleton):
 
     async def _send_message_by_item(self, recipient, item: AdvRunItemInfo):
 
+        logger.info(f"Working with {item}")
+
         account = await self.store.get_account(item.account_id)
 
         try:
@@ -104,7 +106,9 @@ class AdvDistributor(metaclass=Singleton):
 
                 except Exception as e:
                     logger.critical(f"Cannot send with id: {x}: {e}")
+                    await TelegramChatLogger.send_message_to_chat(
+                        message=f"Cannot send with id: {x}: {e}")
 
                 await asyncio.sleep(5)
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(3)

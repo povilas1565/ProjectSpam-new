@@ -132,6 +132,7 @@ async def get_zip_links(message: types.Message, state: FSMContext):
 
             await message.answer(
                 f"Текущее количество аккаунтов в работе: {await distributor.store.get_accounts_count()}")
+
         except Exception as e:
             await message.answer(f"Не можем распаковать архив: {e}")
 
