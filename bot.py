@@ -35,7 +35,6 @@ async def cancel(message: types.Message, state: FSMContext):
 
 @dp.message(F.text.lower() == "статус объявлений")
 async def ad_remove(message: types.Message, state: FSMContext):
-    current_list = adv_manager.get_all_advertisement()
 
     links = common_tools.read_file(settings.LINKS_PATH)
 
@@ -43,9 +42,9 @@ async def ad_remove(message: types.Message, state: FSMContext):
 
         text = f""
 
-        for item in current_list:
-            status = "В работе" if distributor.ad_status[item.id] else "Простаивает"
-            text += f"{item.id}. Название объявления: {item.name} | Статус: {status}\n"
+        for key, value in distributor.run_items_info.items():
+            
+            text += f"{key}. Название объявления: {value.adv_item.name} | Статус: {value.status}\n"
 
         if len(text) > 1:
             await message.answer(text)
@@ -84,8 +83,11 @@ async def get_adv_id_delete(message: types.Message, state: FSMContext):
     adv_id = message.text
 
     if adv_manager.remove_ad(adv_id):
-        await distributor.on_ad_removed(adv_id)
-        await message.answer(f"Реклама с id {adv_id} успешно удалена")
+        try:
+            await distributor.on_ad_removed(adv_id)
+            await message.answer(f"Реклама с id {adv_id} успешно удалена")
+        except Exception as e:
+            await message.answer(f"Ошибка удаления объявления: {e}")
     else:
         await message.answer("Не смогли удалить рекламу. Смотрите логи")
 
@@ -125,7 +127,7 @@ async def get_zip_links(message: types.Message, state: FSMContext):
             for folder in folders:
                 result_folders.append(f'{settings.ACCOUNTS_PATH}/ready/{folder}')
 
-            results = await distributor.add_account(result_folders)
+            results = await distributor.store.add_account(result_folders)
             
             for result in results:
                 if result.error is not None:
@@ -166,7 +168,7 @@ async def get_zip_links(message: types.Message, state: FSMContext):
 
     await message.answer("Очищаем текущие аккаунты...")
 
-    await distributor.unload_accounts()
+    await distributor.store.unload_accounts()
 
     try:
         shutil.rmtree(f'{settings.ACCOUNTS_PATH}/ready')
@@ -188,11 +190,8 @@ async def get_zip_links(message: types.Message, state: FSMContext):
             for folder in folders:
                 result_folders.append(f'{settings.ACCOUNTS_PATH}/ready/{folder}')
 
-            
-            await message.answer(f"Перезагружаем менеджер рекламы...")
-            await distributor.reset()
-
-            results = await distributor.add_account(result_folders)
+    
+            results = await distributor.store.add_account(result_folders)
 
             for result in results:
                 if result.error is not None:
@@ -339,6 +338,7 @@ async def review_photo(message: types.Message, state: FSMContext):
             resize_keyboard=True,
         )
     )
+
     await state.set_state(states.NewAdv.check)
 
 
@@ -393,7 +393,11 @@ async def command_start(message: types.Message, state: FSMContext) -> None:
 
 
 async def main():
-    await distributor.reload()
+    
+    results = adv_manager.get_all_advertisement()
+
+    for res in results:
+        await distributor.on_ad_added(res)
 
     asyncio.create_task(distributor.run())
 

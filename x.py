@@ -1,25 +1,20 @@
-def get_free_account():
-    for key, value in free.items():
-        if value is False:
-            return key
-    return None
+import asyncio
 
-test = [51, 52, 53]
+async def long_run_task():
+    while True:
+        print("still running")
+        await asyncio.sleep(1)
 
-free = {}
 
-def on_added():
-    for t in test:
-        if t not in free:
-            free[t] = False
+async def main():
+    task = asyncio.ensure_future(long_run_task())
 
-on_added()
+    await asyncio.sleep(3)
 
-print(free.items())
+    task.cancel()
 
-# Пример использования функции get_free_account():
-free_key = get_free_account()
-if free_key is not None:
-    print(f"Свободный аккаунт: {free_key}")
-else:
-    print("Нет свободных аккаунтов")
+    print("canceled")
+
+asyncio.run(main())
+
+input("23")
