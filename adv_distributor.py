@@ -64,7 +64,7 @@ class AdvDistributor(metaclass=Singleton):
         except Exception as e:
             logger.warning(e)
             await TelegramChatLogger.send_message_to_chat(
-                message=f"Не можем отправить сообщение пользователю {recipient}: {e}")
+                message=f"❌❌ Не можем отправить сообщение пользователю {recipient}: {e}")
 
     async def run(self):
         while True:
@@ -92,7 +92,7 @@ class AdvDistributor(metaclass=Singleton):
                         else:
                             res_item.status = AdvRunItemStatus.LINKS_NOT_FOUND
                             await TelegramChatLogger.send_message_to_chat(
-                                message=f"Не можем отправить объявление {res_item.adv_item.name}: список ссылок не найден")
+                                message=f"❌❌ Не можем отправить объявление {res_item.adv_item.name}: список ссылок не найден")
 
                         await asyncio.sleep(1)
 
@@ -100,14 +100,14 @@ class AdvDistributor(metaclass=Singleton):
                         res_item.status = AdvRunItemStatus.NOT_ENOUGH_ACCOUNT
 
                         await TelegramChatLogger.send_message_to_chat(
-                            message=f"Не можем отправить объявление {res_item.adv_item.name}: недостаточно аккаунтов")
+                            message=f"❌❌ Не можем отправить объявление {res_item.adv_item.name}: недостаточно аккаунтов")
 
                         await asyncio.sleep(15)
 
                 except Exception as e:
                     logger.critical(f"Cannot send with id: {x}: {e}")
                     await TelegramChatLogger.send_message_to_chat(
-                        message=f"Cannot send with id: {x}: {e}")
+                        message=f"❌❌ Cannot send with id: {x}: {e}")
 
                 await asyncio.sleep(5)
 
