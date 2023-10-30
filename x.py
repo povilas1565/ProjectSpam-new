@@ -1,23 +1,25 @@
-import zipfile
-import settings
+def get_free_account():
+    for key, value in free.items():
+        if value is False:
+            return key
+    return None
 
-def print_folders(zip_file_path):
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
-        folder_set = set()  # Use a set to store unique folder paths
-        for file_info in zip_file.infolist():
-            file_path = file_info.filename
-            path_components = file_path.split('/')
-            if len(path_components) > 1:
-                folder_set.add(path_components[0])
+test = [51, 52, 53]
 
-        for folder in folder_set:
-            print(folder)
+free = {}
 
-# Replace 'your_zip_file.zip' with the path to your zip file
-zip_file_path = f'{settings.ACCOUNTS_PATH}/tmp.zip'
-print_folders(zip_file_path)
+def on_added():
+    for t in test:
+        if t not in free:
+            free[t] = False
 
+on_added()
 
+print(free.items())
 
-
-
+# Пример использования функции get_free_account():
+free_key = get_free_account()
+if free_key is not None:
+    print(f"Свободный аккаунт: {free_key}")
+else:
+    print("Нет свободных аккаунтов")

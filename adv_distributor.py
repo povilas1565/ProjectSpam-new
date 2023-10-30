@@ -34,18 +34,26 @@ class AdvDistributor(metaclass=Singleton):
         self._adv_manager = AdvertisementManager()
 
         self.ad_status = {}
-        self._free_accounts = deque()
         self._ad_items = {}
+        self._accounts_statuses = {}
 
     async def _on_account_loaded(self):
-        res = await self.store.get_accounts() # TODO добавляется лишь последний акк, если добавлять 2 подряд - добавится только один
-        self._free_accounts.append(res[-1])
+        res = await self.store.get_accounts()
+        for r in res:
+            if r not in self._accounts_statuses:
+                self._accounts_statuses[r] = False
+
+    async def _free_accounts(self):
+        res = await self.store.get_accounts() 
+        for r in res:
+            self._accounts_statuses[r] = False
 
     async def on_ad_added(self, item: AdvertisementItem):
-        account_id = self._free_accounts.pop()
+        account_id = await self._get_free_account()
 
         if account_id is None:
-            logger.critical(f"Cannot attach account is {account_id}")
+            logger.critical(f"Cannot attach account is {account_id}, ad id: {item.id}")
+            self.ad_status[int(item.id)] = False
         else:
             m = AdvRunItem(account_id=account_id,
                            status=True,
@@ -65,27 +73,21 @@ class AdvDistributor(metaclass=Singleton):
 
     async def reset(self):
         await self.store.unload_accounts()
-        self._free_accounts.clear()
-        for key, value in self.ad_status.keys():
+        await self._free_accounts()
+        for key, value in self.ad_status.items():
             self.ad_status[key] = False
 
 
     async def reload(self):
         await self.store.unload_accounts()
         res = common_tools.get_files_in_dir(f'{settings.ACCOUNTS_PATH}/ready')
-        results = await self.store.add_account(res)
-        for result in results:
-            if result.error is None:
-                res = await self.store.get_accounts()
-                for r in res:
-                    self._free_accounts.append(r)
+        await self.store.add_account(res)
+        await self._on_account_loaded()
 
     async def add_account(self, path):
-        results = await self.store.add_account(path)
-        for result in results:
-            if result.error is None:
-                await self._on_account_loaded()
-        return results
+        res = await self.store.add_account(path)
+        await self._on_account_loaded()
+        return res
 
     async def _run_for_account(self, item_id):
         
@@ -104,7 +106,7 @@ class AdvDistributor(metaclass=Singleton):
 
                     if not res:
                         logger.success(f"Account id: {item.account_id} is stopped")
-                        self._free_accounts.append(item.account_id)
+                        self._accounts_statuses[int(item.account_id)] = False
                         del self._ad_items[int(item_id)] 
                         return
 
@@ -127,18 +129,26 @@ class AdvDistributor(metaclass=Singleton):
 
             await asyncio.sleep(settings.DELAYS_IN_CHANNEL)
 
+    async def _get_free_account(self):
+        for key, value in self._accounts_statuses.items():
+            if value is False:
+                self._accounts_statuses[key] = True
+                return key
+        return None
+
     async def run(self):
         items = self._adv_manager.get_all_advertisement()
 
         for item in items:
 
             try:
-                account_id = self._free_accounts.pop()
+                account_id = await self._get_free_account()
             except Exception as e:
                 account_id = None
 
             if account_id is None:
-                logger.critical(f"Cannot attach account is {account_id}")
+                logger.critical(f"Cannot attach account is {account_id}, ad id: {item.id}")
+                self.ad_status[int(item.id)] = False
             else:
                 m = AdvRunItem(account_id=account_id,
                                status=True,
