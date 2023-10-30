@@ -37,12 +37,14 @@ class AdvertisementManager:
             pth = f"{settings.PHOTOS_PATH}/{result.name}"
             
             logger.info(f"Removing {pth}")
+
             try:
                 for i in range(0, 5):
                     shutil.rmtree(pth)
                     break
             except Exception as e:
                 logger.warning(f"Cannot delete {pth}")
+
             logger.success(f"Реклама с id {id} удалена")
             return True
         except Exception as e:

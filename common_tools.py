@@ -14,3 +14,10 @@ def read_file(path):
     except Exception as e:
         logger.critical(f"Cannot load file: {e}")
     return res
+
+def get_index_default(target: list, index: int):
+    try:
+        return target[index]
+    except Exception as e:
+        logger.warning(f"List {target=} with {index=} is empty")
+        return None

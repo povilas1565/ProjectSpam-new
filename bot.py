@@ -24,18 +24,17 @@ dp = Dispatcher()
 
 adv_manager = AdvertisementManager()
 
-
 distributor = AdvDistributor()
+
 
 @dp.message(F.text.lower() == "отмена")
 async def cancel(message: types.Message, state: FSMContext):
-   await message.answer(f"Действие отменено")
-   return await command_start(message, state)
+    await message.answer(f"Действие отменено")
+    return await command_start(message, state)
 
 
 @dp.message(F.text.lower() == "статус объявлений")
 async def ad_remove(message: types.Message, state: FSMContext):
-
     links = common_tools.read_file(settings.LINKS_PATH)
 
     if len(links) > 0:
@@ -43,7 +42,6 @@ async def ad_remove(message: types.Message, state: FSMContext):
         text = f""
 
         for key, value in distributor.run_items_info.items():
-            
             text += f"{key}. Название объявления: {value.adv_item.name} | Статус: {value.status}\n"
 
         if len(text) > 1:
@@ -108,7 +106,6 @@ async def get_ad_name(message: types.Message, state: FSMContext):
 
 @dp.message(states.AccountUpload.waiting_file)
 async def get_zip_links(message: types.Message, state: FSMContext):
-
     Path(f"{settings.ACCOUNTS_PATH}/ready").mkdir(parents=True, exist_ok=True)
 
     await message.answer("Скачиваем аккаунты....")
@@ -120,7 +117,7 @@ async def get_zip_links(message: types.Message, state: FSMContext):
         try:
             folders = ArchiveManager.unzip(f"{settings.ACCOUNTS_PATH}/tmp.zip", f"{settings.ACCOUNTS_PATH}/ready/")
             await message.answer(
-            f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}\n\nПодгружаем аккаунты...")
+                f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}\n\nПодгружаем аккаунты...")
 
             result_folders = []
 
@@ -128,22 +125,25 @@ async def get_zip_links(message: types.Message, state: FSMContext):
                 result_folders.append(f'{settings.ACCOUNTS_PATH}/ready/{folder}')
 
             results = await distributor.store.add_account(result_folders)
-            
+
             for result in results:
                 if result.error is not None:
                     await message.answer(f"Ошибка подгрузки аккаунта {result.account_path}: {result.error}")
 
-            await message.answer(f"Текущее количество аккаунтов в работе: {await distributor.store.get_accounts_count()}")
+            await message.answer(
+                f"Текущее количество аккаунтов в работе: {await distributor.store.get_accounts_count()}")
         except Exception as e:
             await message.answer(f"Не можем распаковать архив: {e}")
-        
+
         return await command_start(message, state)
-    
+
     else:
-        await message.answer("Не удалось скачать аккаунты. Проверьте ссылку и попробуйте еще раз", reply_markup=types.ReplyKeyboardMarkup(
-            keyboard=buttons.Common.cancel,
-            resize_keyboard=True,
-        ))
+        await message.answer("Не удалось скачать аккаунты. Проверьте ссылку и попробуйте еще раз",
+                             reply_markup=types.ReplyKeyboardMarkup(
+                                 keyboard=buttons.Common.cancel,
+                                 resize_keyboard=True,
+                             ))
+
 
 @dp.message(F.text.lower() == "обновить список аккаунтов")
 async def get_ad_name(message: types.Message, state: FSMContext):
@@ -156,11 +156,13 @@ async def get_ad_name(message: types.Message, state: FSMContext):
     )
     await state.set_state(states.AccountsReplace.waiting_file)
 
+
 @dp.message(F.text.lower() == "статус аккаунтов")
 async def get_ad_name(message: types.Message, state: FSMContext):
     count = await distributor.store.get_accounts_count()
     await message.answer(f"Количество аккаунтов в работе: {count}")
     return await command_start(message, state)
+
 
 @dp.message(states.AccountsReplace.waiting_file)
 async def get_zip_links(message: types.Message, state: FSMContext):
@@ -183,31 +185,33 @@ async def get_zip_links(message: types.Message, state: FSMContext):
             folders = ArchiveManager.unzip(f"{settings.ACCOUNTS_PATH}/tmp.zip", f"{settings.ACCOUNTS_PATH}/ready/")
 
             await message.answer(
-            f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}\n\nПодгружаем аккаунты...")
+                f"Текущее количество аккаунтов: {len(next(os.walk(f'{settings.ACCOUNTS_PATH}/ready/'))[1])}\n\nПодгружаем аккаунты...")
 
             result_folders = []
 
             for folder in folders:
                 result_folders.append(f'{settings.ACCOUNTS_PATH}/ready/{folder}')
 
-    
             results = await distributor.store.add_account(result_folders)
 
             for result in results:
                 if result.error is not None:
                     await message.answer(f"Ошибка подгрузки аккаунта {result.account_path}: {result.error}")
-            await message.answer(f"Текущее количество аккаунтов в работе: {await distributor.store.get_accounts_count()}")
+            await message.answer(
+                f"Текущее количество аккаунтов в работе: {await distributor.store.get_accounts_count()}")
 
         except Exception as e:
             await message.answer(f"Не можем распаковать архив: {e}")
-            
+
         return await command_start(message, state)
-    
+
     else:
-        await message.answer("Не удалось скачать аккаунты. Проверьте ссылку и попробуйте еще раз", reply_markup=types.ReplyKeyboardMarkup(
-            keyboard=buttons.Common.cancel,
-            resize_keyboard=True,
-        ))
+        await message.answer("Не удалось скачать аккаунты. Проверьте ссылку и попробуйте еще раз",
+                             reply_markup=types.ReplyKeyboardMarkup(
+                                 keyboard=buttons.Common.cancel,
+                                 resize_keyboard=True,
+                             ))
+
 
 @dp.message(F.text.lower() == "добавить объявление")
 async def get_ad_name(message: types.Message, state: FSMContext):
@@ -224,8 +228,10 @@ async def get_ad_name(message: types.Message, state: FSMContext):
         )
         await state.set_state(states.NewAdv.name)
     else:
-        await message.answer(f"Не можем добавить объявление. Текущее количество аккаунтов {account_count}, количество объявлений: {ad_count}\n\nЗагрузите больше акаунтов и повторите попытку")
+        await message.answer(
+            f"Не можем добавить объявление. Текущее количество аккаунтов {account_count}, количество объявлений: {ad_count}\n\nЗагрузите больше акаунтов и повторите попытку")
         return await command_start(message, state)
+
 
 @dp.message(F.text.lower() == "обновить список ссылок")
 async def upload_links(message: types.Message, state: FSMContext):
@@ -393,7 +399,11 @@ async def command_start(message: types.Message, state: FSMContext) -> None:
 
 
 async def main():
-    
+
+    res = common_tools.get_files_in_dir(f'{settings.ACCOUNTS_PATH}/ready')
+
+    await distributor.store.add_account(res)
+
     results = adv_manager.get_all_advertisement()
 
     for res in results:
