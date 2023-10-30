@@ -388,15 +388,18 @@ async def download_photos(message: types.Message, state: FSMContext):
 
 @dp.message(Command("start"))
 async def command_start(message: types.Message, state: FSMContext) -> None:
-    await state.clear()
-    await state.set_state(states.MainMenu.menu)
-    await message.answer(
-        "🚀 Что хотите сделать?",
-        reply_markup=types.ReplyKeyboardMarkup(
-            keyboard=buttons.Menu.main_menu,
-            resize_keyboard=True,
+    if message.from_user.id in settings.ALLOWED_CHATS:
+        await state.clear()
+        await state.set_state(states.MainMenu.menu)
+        await message.answer(
+            "🚀 Что хотите сделать?",
+            reply_markup=types.ReplyKeyboardMarkup(
+                keyboard=buttons.Menu.main_menu,
+                resize_keyboard=True,
+            )
         )
-    )
+    else:
+        await message.answer(f"Ошибка: у вас нет доступа к боту")
 
 
 async def main():

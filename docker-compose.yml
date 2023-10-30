@@ -1,0 +1,9 @@
+version: '3.4'
+
+services:
+  tg_spam:
+    build:
+      context: .
+      dockerfile: ./
+    image: tg_spam_image
+    restart: always
