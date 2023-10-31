@@ -88,7 +88,7 @@ class AdvDistributor(metaclass=Singleton):
                             res_item.status = AdvRunItemStatus.RUNNING
                             for link in lines:
                                 await self._send_message_by_item(link, res_item)
-                                await asyncio.sleep(3)
+                                await asyncio.sleep(settings.DELAY_BETWEEN_LINKS)
                         else:
                             res_item.status = AdvRunItemStatus.LINKS_NOT_FOUND
                             await TelegramChatLogger.send_message_to_chat(
@@ -111,4 +111,4 @@ class AdvDistributor(metaclass=Singleton):
 
                 await asyncio.sleep(5)
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(5)
