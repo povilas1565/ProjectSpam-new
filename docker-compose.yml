@@ -4,6 +4,6 @@ services:
   tg_spam:
     build:
       context: .
-      dockerfile: ./
+      dockerfile: ./Dockerfile
     image: tg_spam_image
     restart: always
