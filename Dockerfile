@@ -1,4 +1,4 @@
-FROM python:3.10.0-alpine
+FROM python:3.11
 
 WORKDIR /app
 
@@ -6,10 +6,11 @@ COPY requirements.txt /app/
 
 # Install any needed packages specified in requirements.txt
 
-RUN apt-get update && apt-get install\
-    libgl1\
-    libgl1-mesa-glx \ 
-    libglib2.0-0 -y
+RUN apt-get update -y
+
+RUN apt-get install libglib2.0-0
+
+RUN pip install --upgrade pip
 
 RUN pip install --no-cache-dir -r requirements.txt
 
