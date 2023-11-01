@@ -61,6 +61,7 @@ class AdvDistributor(metaclass=Singleton):
 
         try:
             await account.send_message_to(recipient, item.adv_item.text, item.adv_item.photos)
+            
         except Exception as e:
             logger.warning(e)
             await TelegramChatLogger.send_message_to_chat(
