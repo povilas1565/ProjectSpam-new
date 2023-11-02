@@ -5,5 +5,12 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    volumes:
+      - user_data:/var/lib/tgspam/data
+      - database:/var/lib/tgspam/database
     image: tg_spam_image
     restart: always
+
+volumes:
+  user_data:
+  database:

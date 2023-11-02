@@ -1,8 +1,8 @@
 # DATA PATHS
 
-ACCOUNTS_PATH = "./data/common/accounts"
-LINKS_PATH = "./data/common/links.txt"
-PHOTOS_PATH = "./data/photos"
+ACCOUNTS_PATH = "/var/lib/tgspam/data/common/accounts"
+LINKS_PATH = "/var/lib/tgspam/data/common/links.txt"
+PHOTOS_PATH = "/var/lib/tgspam/data/photos"
 
 # BOT SETTINGS
 
