@@ -6,7 +6,7 @@ PHOTOS_PATH = "/var/lib/tgspam/data/photos"
 
 # BOT SETTINGS
 
-BOT_TOKEN = "6965634450:AAHbdCsWqhqNPbeOuNf9RAzO1maU0ifXQ8U"
+BOT_TOKEN = "6613402768:AAFMupXwaIOQSoGcwMoq73PpWGkA15dJ8s0"
 
 # DELAYS
 
