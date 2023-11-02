@@ -250,7 +250,7 @@ async def upload_links(message: types.Message, state: FSMContext):
 @dp.message(states.LinksUpload.waiting_file, F.content_type.in_({"document"}))
 async def get_links(message: types.Message, state: FSMContext):
 
-    Path(f"/var/lib/tgspam/data/common/").mkdir(parents=True, exist_ok=True)
+    Path(f"/var/lib/tgspam/data/common").mkdir(parents=True, exist_ok=True)
     
     if message.document is not None:
         file_id = message.document.file_id
