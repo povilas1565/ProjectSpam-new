@@ -106,6 +106,7 @@ async def get_ad_name(message: types.Message, state: FSMContext):
 
 @dp.message(states.AccountUpload.waiting_file)
 async def get_zip_links(message: types.Message, state: FSMContext):
+
     Path(f"{settings.ACCOUNTS_PATH}/ready").mkdir(parents=True, exist_ok=True)
 
     await message.answer("🚀 Скачиваем аккаунты....")
@@ -248,7 +249,9 @@ async def upload_links(message: types.Message, state: FSMContext):
 
 @dp.message(states.LinksUpload.waiting_file, F.content_type.in_({"document"}))
 async def get_links(message: types.Message, state: FSMContext):
-    Path(f"./data/common/").mkdir(parents=True, exist_ok=True)
+
+    Path(f"{settings.LINKS_PATH}").mkdir(parents=True, exist_ok=True)
+    
     if message.document is not None:
         file_id = message.document.file_id
         file = await bot.get_file(file_id)
