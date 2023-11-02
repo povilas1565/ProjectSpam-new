@@ -73,6 +73,9 @@ class AdvDistributor(metaclass=Singleton):
             logger.info(f"Items list: {list(self.run_items_info)}")
             logger.info(f"Accounts list: {await self.store.get_accounts()}")
 
+            lines = common_tools.read_file(settings.LINKS_PATH)
+            wait_result = 25
+
             for i, x in enumerate(list(self.run_items_info)):
                 accounts = await self.store.get_accounts()
                 try:
@@ -83,7 +86,6 @@ class AdvDistributor(metaclass=Singleton):
                     if account is not None:
 
                         res_item.account_id = account
-                        lines = common_tools.read_file(settings.LINKS_PATH)
 
                         if len(lines) > 0:
                             res_item.status = AdvRunItemStatus.RUNNING
@@ -95,7 +97,7 @@ class AdvDistributor(metaclass=Singleton):
                             await TelegramChatLogger.send_message_to_chat(
                                 message=f"❌❌ Не можем отправить объявление {res_item.adv_item.name}: список ссылок не найден")
 
-                        await asyncio.sleep(1)
+                        wait_result = len(lines) / settings.DELAY_BETWEEN_LINKS
 
                     else:
                         res_item.status = AdvRunItemStatus.NOT_ENOUGH_ACCOUNT
@@ -103,13 +105,17 @@ class AdvDistributor(metaclass=Singleton):
                         await TelegramChatLogger.send_message_to_chat(
                             message=f"❌❌ Не можем отправить объявление {res_item.adv_item.name}: недостаточно аккаунтов")
 
-                        await asyncio.sleep(15)
+                        wait_result = 15
 
                 except Exception as e:
                     logger.critical(f"Cannot send with id: {x}: {e}")
                     await TelegramChatLogger.send_message_to_chat(
                         message=f"❌❌ Cannot send with id: {x}: {e}")
+                
+                if wait_result < 25:
+                    wait_result = 25
 
-                await asyncio.sleep(5)
-
+                logger.info(f"Waiting for {wait_result}")
+                await asyncio.sleep(wait_result)
+                
             await asyncio.sleep(5)
