@@ -27,6 +27,13 @@ class AdvertisementManager:
 
         return result
 
+    def update_item_info(self, id) -> AdvertisementItem:
+        try:
+            return self._database_manager.read_data(AdvertisementItem, AdvertisementItem.id == id)
+        except Exception as e:
+            logger.warning(f"Cannot update item info: {e}")
+            return None
+
     def get_all_advertisement(self) -> List[AdvertisementItem]:
         return self._database_manager.read_data(AdvertisementItem)
     

@@ -82,7 +82,11 @@ async def ad_remove(message: types.Message, state: FSMContext):
     text = f""
 
     for item in current_list:
-        text += f"📣 {item.id}. Название объявления: {item.name}\n"
+        text += f"📣 {item.id}. Название объявления: {item.name}"
+        if item.is_paused:
+            text += ", на паузе ⏸️\n"
+        else:
+            text += ", активно 🚀\n"
 
     if len(text) > 0:
         await message.answer(
@@ -104,7 +108,7 @@ async def get_adv_id_delete(message: types.Message, state: FSMContext):
 
     if res is not None:
         try:
-            if not res.is_paused:
+            if res.is_paused:
                 await distributor.on_ad_removed(adv_id)
                 await message.answer(f"✅ Реклама с id {adv_id} поставлена на паузу")
             else:

@@ -44,7 +44,10 @@ class AdvDistributor(metaclass=Singleton):
         return True
 
     async def on_ad_removed(self, item_id) -> bool:
-        del self.run_items_info[int(item_id)]
+        try:
+            del self.run_items_info[int(item_id)]
+        except Exception as e:
+            logger.warning(f"Cannot delete ad with id: {id}: {e}")
         return True
 
     async def _send_message_by_item(self, recipient, item: AdvRunItemInfo):
@@ -90,8 +93,22 @@ class AdvDistributor(metaclass=Singleton):
                         if len(lines) > 0:
                             res_item.status = AdvRunItemStatus.RUNNING
                             for link in lines:
-                                await self._send_message_by_item(link, res_item)
-                                await asyncio.sleep(settings.DELAY_BETWEEN_LINKS)
+
+                                new_status = self.run_items_info.get(x)
+
+                                if new_status is not None:
+                                    if not new_status.adv_item.is_paused:
+                                        await self._send_message_by_item(link, res_item)
+                                        await asyncio.sleep(settings.DELAY_BETWEEN_LINKS)
+                                    else:
+                                        logger.info(f"Ad with id {x} is paused, skip")
+                                        await self.on_ad_removed(x)
+                                        await asyncio.sleep(0.01)
+                                else:
+                                    logger.info(f"Ad with id {x} was deleted, skip")
+                                    await self.on_ad_removed(x)
+                                    await asyncio.sleep(0.01)
+
                         else:
                             res_item.status = AdvRunItemStatus.LINKS_NOT_FOUND
                             await TelegramChatLogger.send_message_to_chat(
