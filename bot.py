@@ -75,6 +75,48 @@ async def ad_remove(message: types.Message, state: FSMContext):
     else:
         await message.answer(f"❌ В базе данных еще нет объявлений")
 
+@dp.message(F.text.lower() == "пауза объявления")
+async def ad_remove(message: types.Message, state: FSMContext):
+    current_list = adv_manager.get_all_advertisement()
+
+    text = f""
+
+    for item in current_list:
+        text += f"📣 {item.id}. Название объявления: {item.name}\n"
+
+    if len(text) > 0:
+        await message.answer(
+            f"{text}\n\nСтавим объявление на паузу. Введите ID объявления для паузы",
+            reply_markup=types.ReplyKeyboardMarkup(
+                keyboard=buttons.Common.cancel,
+                resize_keyboard=True,
+            )
+        )
+        await state.set_state(states.AdvertisManager.pause_ad)
+    else:
+        await message.answer(f"❌ В базе данных еще нет объявлений")
+
+@dp.message(states.AdvertisManager.pause_ad)
+async def get_adv_id_delete(message: types.Message, state: FSMContext):
+    adv_id = message.text
+
+    res = adv_manager.pause_unpause_ad(adv_id)
+
+    if res is not None:
+        try:
+            if not res.is_paused:
+                await distributor.on_ad_removed(adv_id)
+                await message.answer(f"✅ Реклама с id {adv_id} поставлена на паузу")
+            else:
+                await distributor.on_ad_added(res)
+                await message.answer(f"✅ Реклама с id {adv_id} снята с паузы и добавлена на публикацию")
+        except Exception as e:
+            await message.answer(f"❌ Ошибка постановки объявления на паузу: {e}")
+    else:
+        await message.answer("❌ Не смогли поставить объявление на паузу. Смотрите логи")
+
+    return await command_start(message, state)
+
 
 @dp.message(states.AdvertisManager.delete_ad)
 async def get_adv_id_delete(message: types.Message, state: FSMContext):
@@ -286,14 +328,36 @@ async def get_ad_text(message: types.Message, state: FSMContext):
     await state.update_data(text=message.text)
 
     await message.answer(
-        f"🚀 Хорошо, текст объявления будет: {message.text}\n\n Теперь добавьте картинки, а когда закончите - нажмите кнопку готово",
+        f"🚀 Хорошо, текст объявления будет: {message.text}\n\n Теперь выберите час публикации. К примеру: 12\nЕсли объявление будет публиковаться каждые N минут - напишите -1",
         reply_markup=types.ReplyKeyboardMarkup(
             keyboard=buttons.Common.cancel,
             resize_keyboard=True,
         )
     )
 
-    await state.set_state(states.NewAdv.photos)
+    await state.set_state(states.NewAdv.publish_time)
+
+@dp.message(states.NewAdv.publish_time)
+async def get_ad_text(message: types.Message, state: FSMContext):
+
+    try:
+        ad_time = int(message.text)
+        if ad_time == -1:
+            await message.answer("Хорошо, объявление будет публиковаться каждые N минут")
+            await state.update_data(publish_time=None)
+            await state.set_state(states.NewAdv.photos)
+        else:
+            await state.update_data(publish_time=ad_time)
+            await message.answer(
+                f"🚀 Хорошо, объявление будет публиковаться каждый день в {message.text} часа(ов). \n\n Теперь добавьте картинки, а когда закончите - нажмите кнопку готово",
+                reply_markup=types.ReplyKeyboardMarkup(
+                    keyboard=buttons.Common.cancel,
+                    resize_keyboard=True,
+                )
+            )
+            await state.set_state(states.NewAdv.photos)
+    except Exception as e:
+        await message.answer(f"❌ Ошибка валидации времени публикации: {e}\n\nВозможно указано не число. Попробуйте еще раз")
 
 
 @dp.message(states.NewAdv.photos, F.content_type.in_({"photo"}))
@@ -372,7 +436,8 @@ async def download_photos(message: types.Message, state: FSMContext):
 
     result = adv_manager.create_advertisement(current_data['name'],
                                               current_data['text'],
-                                              images_paths)
+                                              images_paths,
+                                              current_data['publish_time'])
 
     if result.status == AdvertisementCreateStatus.ALREADY_EXIST:
         await message.answer(

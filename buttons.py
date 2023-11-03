@@ -9,6 +9,8 @@ class Menu:
         ],
         [
             types.KeyboardButton(text="Обновить список ссылок"),
+            types.KeyboardButton(text="Настроить N время"),
+            types.KeyboardButton(text="Пауза объявления"),
         ],
         [
             

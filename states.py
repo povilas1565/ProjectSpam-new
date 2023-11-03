@@ -3,6 +3,7 @@ from aiogram.fsm.state import State, StatesGroup
 class NewAdv(StatesGroup):
     name = State()
     text = State()
+    publish_time = State()
     photos = State()
     check = State()
 
@@ -20,3 +21,4 @@ class AccountsReplace(StatesGroup):
 
 class AdvertisManager(StatesGroup):
     delete_ad = State()
+    pause_ad = State()

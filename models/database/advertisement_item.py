@@ -12,5 +12,8 @@ class AdvertisementItem(SQLModel, table=True):
     photos: List[str] = Field(sa_column=Column(JSON), default=None)
     text: str = Field(sa_column=Column(TEXT), default=None)
     name: str = Field(sa_column=Column(TEXT))
+    is_paused: bool = False
+
+    publish_time: int = None
 
     created_at: datetime = Field(default_factory=datetime.now, nullable=False)

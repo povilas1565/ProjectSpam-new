@@ -12,8 +12,8 @@ class AdvertisementManager:
         self._last_message_time = time.time()
         self._database_manager = DatabaseManager()
 
-    def create_advertisement(self, name: str, text: str, photos: List[str]) -> AdvertisementCreateResult:
-        item = AdvertisementItem(name=name, text=text, photos=photos)
+    def create_advertisement(self, name: str, text: str, photos: List[str], publish_time) -> AdvertisementCreateResult:
+        item = AdvertisementItem(name=name, text=text, photos=photos, publish_time=publish_time)
 
         if self._database_manager.is_exist(AdvertisementItem, AdvertisementItem.name == name):
             logger.warning(f"Реклама с именем {name} уже существует")
@@ -49,4 +49,19 @@ class AdvertisementManager:
             return True
         except Exception as e:
             logger.error(f"Не можем удалить рекламу с id {id}. Причина: {e}")
-        return False            
+        return False
+
+    def pause_unpause_ad(self, id) -> AdvertisementItem:
+        try:
+            result = self._database_manager.read_data(AdvertisementItem, AdvertisementItem.id == id)
+
+            result.is_paused = not result.is_paused
+
+            self._database_manager.save_data(result)
+
+            return result
+        except Exception as e:
+            logger.error(f"Не можем удалить рекламу с id {id}. Причина: {e}")
+        return None
+
+
