@@ -343,7 +343,7 @@ async def get_ad_text(message: types.Message, state: FSMContext):
     try:
         ad_time = int(message.text)
         if ad_time == -1:
-            await message.answer("Хорошо, объявление будет публиковаться каждые N минут")
+            await message.answer("Хорошо, объявление будет публиковаться каждые N минут\n\nТеперь добавьте картинки, а когда закончите - нажмите кнопку готово")
             await state.update_data(publish_time=None)
             await state.set_state(states.NewAdv.photos)
         else:

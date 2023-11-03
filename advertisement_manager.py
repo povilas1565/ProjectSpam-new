@@ -64,4 +64,3 @@ class AdvertisementManager:
             logger.error(f"Не можем удалить рекламу с id {id}. Причина: {e}")
         return None
 
-
