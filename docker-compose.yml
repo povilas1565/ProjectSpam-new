@@ -6,8 +6,8 @@ services:
       context: .
       dockerfile: ./Dockerfile
     volumes:
-      - user_data:/var/lib/tgspam/data
-      - database:/var/lib/tgspam/database
+      - u_data:/var/lib/tgspam/data
+      - d_data:/var/lib/tgspam/database
     image: tg_spam_image
     restart: always
 
