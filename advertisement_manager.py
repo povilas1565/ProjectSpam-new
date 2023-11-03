@@ -58,6 +58,14 @@ class AdvertisementManager:
             logger.error(f"Не можем удалить рекламу с id {id}. Причина: {e}")
         return False
 
+    def get_ad_info(self, id) -> AdvertisementItem:
+        try:
+            result = self._database_manager.read_data(AdvertisementItem, AdvertisementItem.id == id)
+            return result
+        except Exception as e:
+            logger.error(f"Не можем получить информацию о рекламе с id {id}. Причина: {e}")
+        return None
+
     def pause_unpause_ad(self, id) -> AdvertisementItem:
         try:
             result = self._database_manager.read_data(AdvertisementItem, AdvertisementItem.id == id)
@@ -68,6 +76,6 @@ class AdvertisementManager:
 
             return result
         except Exception as e:
-            logger.error(f"Не можем удалить рекламу с id {id}. Причина: {e}")
+            logger.error(f"Не можем поставить рекламу с id {id}. Причина: {e}")
         return None
 

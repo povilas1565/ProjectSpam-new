@@ -9,6 +9,7 @@ from loguru import logger
 import asyncio
 import enum
 from telegram_chat_logger import TelegramChatLogger
+import time_manager
 
 
 class AdvRunItemStatus(int, enum.Enum):
@@ -98,8 +99,17 @@ class AdvDistributor(metaclass=Singleton):
 
                                 if new_status is not None:
                                     if not new_status.adv_item.is_paused:
-                                        await self._send_message_by_item(link, res_item)
-                                        await asyncio.sleep(settings.DELAY_BETWEEN_LINKS)
+                                        if new_status.adv_item.publish_time is None:
+                                            await self._send_message_by_item(link, res_item)
+                                            logger.info(f"x Waiting for {settings.DELAY_BETWEEN_LINKS / len(lines)}")
+                                            await asyncio.sleep(settings.DELAY_BETWEEN_LINKS / len(lines))
+                                        else:
+                                            if await time_manager.get_current_hour() == new_status.adv_item.publish_time:
+                                                await self._send_message_by_item(link, res_item)
+                                                logger.info(f"x Waiting for {settings.DELAY_BETWEEN_LINKS / len(lines)}")
+                                                await asyncio.sleep(settings.DELAY_BETWEEN_LINKS / len(lines))
+                                            else:
+                                                wait_result = 25
                                     else:
                                         logger.info(f"Ad with id {x} is paused, skip")
                                         await self.on_ad_removed(x)
@@ -126,8 +136,6 @@ class AdvDistributor(metaclass=Singleton):
 
                 except Exception as e:
                     logger.critical(f"Cannot send with id: {x}: {e}")
-                    await TelegramChatLogger.send_message_to_chat(
-                        message=f"❌❌ Cannot send with id: {x}: {e}")
                 
                 if wait_result < 25:
                     wait_result = 25

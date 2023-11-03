@@ -22,3 +22,6 @@ class AccountsReplace(StatesGroup):
 class AdvertisManager(StatesGroup):
     delete_ad = State()
     pause_ad = State()
+
+class Settings(StatesGroup):
+    n_time = State()

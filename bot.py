@@ -33,6 +33,29 @@ async def cancel(message: types.Message, state: FSMContext):
     return await command_start(message, state)
 
 
+@dp.message(F.text.lower() == "настроить n время")
+async def cancel(message: types.Message, state: FSMContext):
+    await message.answer(
+        f"🕒 Текущее N время: {settings.DELAY_BETWEEN_LINKS}\nВведите новое N время (в секундах)",
+        reply_markup=types.ReplyKeyboardMarkup(
+            keyboard=buttons.Common.cancel,
+            resize_keyboard=True,
+        )
+    )
+    await state.set_state(states.Settings.n_time)
+
+
+@dp.message(states.Settings.n_time)
+async def get_adv_id_delete(message: types.Message, state: FSMContext):
+    try:
+        ad_time = int(message.text)
+        settings.DELAY_BETWEEN_LINKS = ad_time
+        await message.answer(f"Установили новое N время: {settings.DELAY_BETWEEN_LINKS}")
+        return await command_start(message, state)
+    except Exception as e:
+        await message.answer(f"Ошибка валидации: {e}\nПопробуйте еще раз")
+
+
 @dp.message(F.text.lower() == "статус объявлений")
 async def ad_remove(message: types.Message, state: FSMContext):
     links = common_tools.read_file(settings.LINKS_PATH)
@@ -75,6 +98,7 @@ async def ad_remove(message: types.Message, state: FSMContext):
     else:
         await message.answer(f"❌ В базе данных еще нет объявлений")
 
+
 @dp.message(F.text.lower() == "пауза объявления")
 async def ad_remove(message: types.Message, state: FSMContext):
     current_list = adv_manager.get_all_advertisement()
@@ -90,7 +114,7 @@ async def ad_remove(message: types.Message, state: FSMContext):
 
     if len(text) > 0:
         await message.answer(
-            f"{text}\n\nСтавим объявление на паузу. Введите ID объявления для паузы",
+            f"{text}\n\nМеняем статус объявлений паузы. Введите ID объявления для паузы / продолжения",
             reply_markup=types.ReplyKeyboardMarkup(
                 keyboard=buttons.Common.cancel,
                 resize_keyboard=True,
@@ -100,24 +124,41 @@ async def ad_remove(message: types.Message, state: FSMContext):
     else:
         await message.answer(f"❌ В базе данных еще нет объявлений")
 
+
 @dp.message(states.AdvertisManager.pause_ad)
 async def get_adv_id_delete(message: types.Message, state: FSMContext):
-    adv_id = message.text
+    try:
+        adv_id = int(message.text)
 
-    res = adv_manager.pause_unpause_ad(adv_id)
+        account_count = await distributor.store.get_accounts_count()
+        ad_count = len(distributor.run_items_info)
 
-    if res is not None:
-        try:
-            if res.is_paused:
-                await distributor.on_ad_removed(adv_id)
-                await message.answer(f"✅ Реклама с id {adv_id} поставлена на паузу")
+        info = adv_manager.get_ad_info(adv_id)
+
+        if not info.is_paused:
+
+            res = adv_manager.pause_unpause_ad(adv_id)
+
+            if res is not None:
+                try:
+                    await distributor.on_ad_removed(adv_id)
+                    await message.answer(f"✅ Реклама с id {adv_id} поставлена на паузу")
+                except Exception as e:
+                    await message.answer(f"❌ Ошибка постановки объявления на паузу: {e}")
             else:
+                await message.answer("❌ Не смогли поставить объявление на паузу. Смотрите логи")
+
+        else:
+            if ad_count >= account_count:
+                await message.answer(
+                    f"❌ Текущее количество аккаунтов: {account_count}, количество объявлений в работе: {ad_count}. Добавьте больше аккаунтов")
+            else:
+                res = adv_manager.pause_unpause_ad(adv_id)
                 await distributor.on_ad_added(res)
-                await message.answer(f"✅ Реклама с id {adv_id} снята с паузы и добавлена на публикацию")
-        except Exception as e:
-            await message.answer(f"❌ Ошибка постановки объявления на паузу: {e}")
-    else:
-        await message.answer("❌ Не смогли поставить объявление на паузу. Смотрите логи")
+                await message.answer(f"✅ Реклама с id {adv_id} снята с паузы и отправлено в обработку")
+
+    except Exception as e:
+        await message.answer(f"❌ Ошибка валидации: {e}\nПопробуйте еще раз")
 
     return await command_start(message, state)
 
@@ -152,7 +193,6 @@ async def get_ad_name(message: types.Message, state: FSMContext):
 
 @dp.message(states.AccountUpload.waiting_file)
 async def get_zip_links(message: types.Message, state: FSMContext):
-
     Path(f"{settings.ACCOUNTS_PATH}/ready").mkdir(parents=True, exist_ok=True)
 
     await message.answer("🚀 Скачиваем аккаунты....")
@@ -264,7 +304,7 @@ async def get_zip_links(message: types.Message, state: FSMContext):
 @dp.message(F.text.lower() == "добавить объявление")
 async def get_ad_name(message: types.Message, state: FSMContext):
     account_count = await distributor.store.get_accounts_count()
-    ad_count = len(adv_manager.get_all_advertisement())
+    ad_count = len(distributor.run_items_info)
 
     if account_count > ad_count:
         await message.answer(
@@ -295,9 +335,8 @@ async def upload_links(message: types.Message, state: FSMContext):
 
 @dp.message(states.LinksUpload.waiting_file, F.content_type.in_({"document"}))
 async def get_links(message: types.Message, state: FSMContext):
-
     Path(f"/var/lib/tgspam/data/common").mkdir(parents=True, exist_ok=True)
-    
+
     if message.document is not None:
         file_id = message.document.file_id
         file = await bot.get_file(file_id)
@@ -332,7 +371,7 @@ async def get_ad_text(message: types.Message, state: FSMContext):
     await state.update_data(text=message.text)
 
     await message.answer(
-        f"🚀 Хорошо, текст объявления будет: {message.text}\n\n Теперь выберите час публикации. К примеру: 12\nЕсли объявление будет публиковаться каждые N минут - напишите -1",
+        f"🚀 Хорошо, текст объявления будет: {message.text}\n\n Теперь выберите час публикации. К примеру: 12\nЕсли объявление будет публиковаться каждые {settings.DELAY_BETWEEN_LINKS} секунд - напишите -1",
         reply_markup=types.ReplyKeyboardMarkup(
             keyboard=buttons.Common.cancel,
             resize_keyboard=True,
@@ -341,13 +380,14 @@ async def get_ad_text(message: types.Message, state: FSMContext):
 
     await state.set_state(states.NewAdv.publish_time)
 
+
 @dp.message(states.NewAdv.publish_time)
 async def get_ad_text(message: types.Message, state: FSMContext):
-
     try:
         ad_time = int(message.text)
         if ad_time == -1:
-            await message.answer("Хорошо, объявление будет публиковаться каждые N минут\n\nТеперь добавьте картинки, а когда закончите - нажмите кнопку готово")
+            await message.answer(
+                f"Хорошо, объявление будет публиковаться каждые {settings.DELAY_BETWEEN_LINKS} секунд\n\nТеперь добавьте картинки, а когда закончите - нажмите кнопку готово")
             await state.update_data(publish_time=None)
             await state.set_state(states.NewAdv.photos)
         else:
@@ -361,7 +401,8 @@ async def get_ad_text(message: types.Message, state: FSMContext):
             )
             await state.set_state(states.NewAdv.photos)
     except Exception as e:
-        await message.answer(f"❌ Ошибка валидации времени публикации: {e}\n\nВозможно указано не число. Попробуйте еще раз")
+        await message.answer(
+            f"❌ Ошибка валидации времени публикации: {e}\n\nВозможно указано не число. Попробуйте еще раз")
 
 
 @dp.message(states.NewAdv.photos, F.content_type.in_({"photo"}))
@@ -475,7 +516,6 @@ async def command_start(message: types.Message, state: FSMContext) -> None:
 
 
 async def main():
-
     res = common_tools.get_files_in_dir(f'{settings.ACCOUNTS_PATH}/ready')
 
     await distributor.store.add_account(res)
@@ -483,7 +523,8 @@ async def main():
     results = adv_manager.get_all_advertisement()
 
     for res in results:
-        await distributor.on_ad_added(res)
+        if not res.is_paused:
+            await distributor.on_ad_added(res)
 
     asyncio.create_task(distributor.run())
 
