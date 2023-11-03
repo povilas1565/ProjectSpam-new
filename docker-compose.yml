@@ -12,5 +12,5 @@ services:
     restart: always
 
 volumes:
-  user_data:
-  database:
+  u_data:
+  d_data:
