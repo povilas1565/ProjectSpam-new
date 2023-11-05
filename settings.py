@@ -3,6 +3,7 @@
 ACCOUNTS_PATH = "/var/lib/tgspam/data/common/accounts"
 LINKS_PATH = "/var/lib/tgspam/data/common/links.txt"
 PHOTOS_PATH = "/var/lib/tgspam/data/photos"
+DATABASE_PATH = '/var/lib/tgspam/database'
 
 # BOT SETTINGS
 

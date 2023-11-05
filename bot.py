@@ -1,3 +1,9 @@
+from pathlib import Path
+import settings
+
+Path(f"{settings.ACCOUNTS_PATH}/ready").mkdir(parents=True, exist_ok=True)
+Path(f"{settings.DATABASE_PATH}").mkdir(parents=True, exist_ok=True)
+
 import asyncio
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, CommandObject
@@ -5,13 +11,11 @@ from loguru import logger
 import io
 from aiogram.fsm.context import FSMContext
 import uuid
-from pathlib import Path
 import states
 import buttons
 import zipfile
 import os
 import shutil
-import settings
 from advertisement_manager import AdvertisementManager
 from models.advertisement import AdvertisementCreateStatus
 from adv_distributor import AdvDistributor
@@ -20,6 +24,7 @@ from archive_manager import ArchiveManager
 import common_tools
 
 bot = Bot(token=settings.BOT_TOKEN, parse_mode="HTML")
+
 dp = Dispatcher()
 
 adv_manager = AdvertisementManager()

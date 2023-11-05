@@ -1,6 +1,7 @@
 import glob
 from loguru import logger
 import aiohttp
+import re
 
 def get_files_in_dir(dir):
     return glob.glob(f"{dir}/*")
@@ -30,3 +31,6 @@ async def make_get_request(url):
                 logger.success(f"Url: {url} | {resp.status}")
     except Exception as e:
         logger.warning(e)
+
+def parse_digits(request):
+    return re.findall(r'\d+', request)

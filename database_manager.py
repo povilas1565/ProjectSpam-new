@@ -16,7 +16,7 @@ class Singleton(type):
 
 class DatabaseManager(metaclass=Singleton):
     def __init__(self):
-        sqlite_url = "sqlite:////var/lib/tgspam/database/database.db"
+        sqlite_url = f"sqlite:///{settings.DATABASE_PATH}/database.db"
         self._engine = create_engine(sqlite_url)
         SQLModel.metadata.create_all(self._engine)
 

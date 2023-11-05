@@ -70,6 +70,8 @@ class AdvDistributor(metaclass=Singleton):
             logger.warning(e)
             await TelegramChatLogger.send_message_to_chat(
                 message=f"❌❌ Не можем отправить сообщение пользователю {recipient}: {e}")
+            
+    
 
     async def run(self):
         while True:
@@ -92,7 +94,9 @@ class AdvDistributor(metaclass=Singleton):
                         res_item.account_id = account
 
                         if len(lines) > 0:
+
                             res_item.status = AdvRunItemStatus.RUNNING
+                            
                             for link in lines:
 
                                 new_status = self.run_items_info.get(x)

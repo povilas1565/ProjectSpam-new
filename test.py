@@ -1,6 +1,5 @@
-my_dict = {"ключ1": 42, "ключ2": "значение", "ключ3": [1, 2, 3]}
+import common_tools
 
-# Получить количество ключей в словаре
-количество_ключей = len(my_dict)
+test = """A wait of 612 seconds is required before sending another message in this chat"""
 
-print("Количество ключей в словаре:", количество_ключей)
+print(common_tools.parse_digits(test.split("of ")[1].split("seconds")[0]))
