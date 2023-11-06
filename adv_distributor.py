@@ -1,5 +1,6 @@
 import asyncio
-
+import random
+import time
 import common_tools
 from models.database import AdvertisementItem
 from pydantic import BaseModel
@@ -62,9 +63,9 @@ class AdvDistributor(metaclass=Singleton):
         account = await self.store.get_account(item.account_id)
 
         if account is not None:
-            
+
             item.status = AdvRunItemStatus.RUNNING
-            
+
             async with self._semaphore:
                 try:
                     await account.follow_to(recipient)
@@ -76,25 +77,25 @@ class AdvDistributor(metaclass=Singleton):
                     await account.send_message_to(recipient, item.adv_item.text, item.adv_item.photos)
 
                     return True
-                    
+
                 except Exception as e:
                     logger.warning(e)
                     await TelegramChatLogger.send_message_to_chat(
                         message=f"❌❌ Не можем отправить сообщение пользователю {recipient}: {e}")
-                
-                await asyncio.sleep(5)
+
+                await asyncio.sleep(random.randint(10, 20))
 
         else:
-            
+
             item.status = AdvRunItemStatus.NOT_ENOUGH_ACCOUNT
 
             await TelegramChatLogger.send_message_to_chat(
-            message=f"❌❌ Не можем отправить сообщение пользователю {recipient}. Account is none")
-        
+                message=f"❌❌ Не можем отправить сообщение пользователю {recipient}. Account is none")
+
         return False
-    
+
     async def _run_for_link(self, link, item: AdvRunItemInfo):
-        
+
         item.adv_item = self._adv_manager.update_item_info(item.adv_item.id)
 
         if item.adv_item.publish_time is not None:
@@ -109,7 +110,6 @@ class AdvDistributor(metaclass=Singleton):
                     self._adv_manager.refresh_item(item.adv_item)
         else:
             await self._send_message_by_item(link, item)
-
 
     async def run(self):
         while True:
@@ -133,11 +133,22 @@ class AdvDistributor(metaclass=Singleton):
 
                     res_item.account_id = account
 
-                    for link in lines:
+                    diff = time.time() - res_item.adv_item.last_sent_time_ms
 
-                        await asyncio.create_task(self._run_for_link(link, res_item))
-                
-                await asyncio.sleep(10)
-                #await asyncio.sleep(settings.DELAY_BETWEEN_LINKS if settings.DELAY_BETWEEN_LINKS > settings.MIN_DELAY else settings.MIN_DELAY)
+                    if res_item.adv_item.publish_time is None:
+                        diff_val = settings.DELAY_BETWEEN_LINKS if settings.DELAY_BETWEEN_LINKS > settings.MIN_DELAY else settings.MIN_DELAY
+                    else:
+                        diff_val = 30
+
+                    if diff > diff_val:
+
+                        for link in lines:
+                            asyncio.create_task(self._run_for_link(link, res_item))
+
+                        adv = self._adv_manager.update_item_info(res_item.adv_item.id)
+                        adv.last_sent_time_ms = time.time()
+                        self._adv_manager.refresh_item(adv)
+                    else:
+                        logger.info(f"Таска была отправлена {diff} секунд назад, а надо {diff_val}")
 
             await asyncio.sleep(5)

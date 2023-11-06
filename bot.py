@@ -396,15 +396,19 @@ async def get_ad_text(message: types.Message, state: FSMContext):
             await state.update_data(publish_time=None)
             await state.set_state(states.NewAdv.photos)
         else:
-            await state.update_data(publish_time=ad_time)
-            await message.answer(
-                f"🚀 Хорошо, объявление будет публиковаться каждый день в {message.text} часа(ов). \n\n Теперь добавьте картинки, а когда закончите - нажмите кнопку готово",
-                reply_markup=types.ReplyKeyboardMarkup(
-                    keyboard=buttons.Common.cancel,
-                    resize_keyboard=True,
+            if ad_time >= 120:
+                await state.update_data(publish_time=ad_time)
+                await message.answer(
+                    f"🚀 Хорошо, объявление будет публиковаться каждый день в {message.text} часа(ов). \n\n Теперь добавьте картинки, а когда закончите - нажмите кнопку готово",
+                    reply_markup=types.ReplyKeyboardMarkup(
+                        keyboard=buttons.Common.cancel,
+                        resize_keyboard=True,
+                    )
                 )
-            )
-            await state.set_state(states.NewAdv.photos)
+                await state.set_state(states.NewAdv.photos)
+            else:
+                await message.answer(
+                    f"❌ Ошибка: минимальное время не может быть меньше 120 секунд")
     except Exception as e:
         await message.answer(
             f"❌ Ошибка валидации времени публикации: {e}\n\nВозможно указано не число. Попробуйте еще раз")

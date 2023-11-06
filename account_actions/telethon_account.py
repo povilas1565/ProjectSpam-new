@@ -61,13 +61,13 @@ class TelethonAccount(Account):
 
     async def send_message_to(self, receiver, text, file=None):
 
-        for i in range(int(len(text) / 2)):
+        for i in range(0, 5):
             result = await self._client['client'](functions.messages.SetTypingRequest(
                 peer=receiver,
                 action=types.SendMessageTypingAction()
             ))
 
-            await asyncio.sleep(int(len(text) * 0.00001))
+            await asyncio.sleep(1)
 
         result = await self._client['client'](functions.messages.SetTypingRequest(
             peer=receiver,

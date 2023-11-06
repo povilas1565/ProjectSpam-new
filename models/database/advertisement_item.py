@@ -16,5 +16,6 @@ class AdvertisementItem(SQLModel, table=True):
 
     publish_time: int = None
     was_sent: bool = False
+    last_sent_time_ms: int = 0
 
     created_at: datetime = Field(default_factory=datetime.now, nullable=False)
