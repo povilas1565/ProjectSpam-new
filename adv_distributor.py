@@ -10,6 +10,7 @@ import asyncio
 import enum
 from telegram_chat_logger import TelegramChatLogger
 import time_manager
+from advertisement_manager import AdvertisementManager
 
 
 class AdvRunItemStatus(int, enum.Enum):
@@ -17,6 +18,7 @@ class AdvRunItemStatus(int, enum.Enum):
     RUNNING = 1
     NOT_ENOUGH_ACCOUNT = 2
     LINKS_NOT_FOUND = 3
+    WAITING_FOR_TIME = 4
 
 
 class AdvRunItemInfo(BaseModel):
@@ -39,6 +41,8 @@ class AdvDistributor(metaclass=Singleton):
     def __init__(self):
         self.store = AccountsStore(max_login_accounts=1)
         self.run_items_info = {}
+        self._semaphore = asyncio.Semaphore(1)
+        self._adv_manager = AdvertisementManager()
 
     async def on_ad_added(self, item: AdvertisementItem) -> bool:
         self.run_items_info[int(item.id)] = AdvRunItemInfo(status=AdvRunItemStatus.NOT_RUNNING, adv_item=item)
@@ -51,27 +55,61 @@ class AdvDistributor(metaclass=Singleton):
             logger.warning(f"Cannot delete ad with id: {id}: {e}")
         return True
 
-    async def _send_message_by_item(self, recipient, item: AdvRunItemInfo):
+    async def _send_message_by_item(self, recipient, item: AdvRunItemInfo) -> bool:
 
         logger.info(f"Working with {item}")
 
         account = await self.store.get_account(item.account_id)
 
-        try:
-            await account.follow_to(recipient)
-            await asyncio.sleep(5)
-        except Exception as e:
-            logger.warning(e)
+        if account is not None:
+            
+            item.status = AdvRunItemStatus.RUNNING
+            
+            async with self._semaphore:
+                try:
+                    await account.follow_to(recipient)
+                    await asyncio.sleep(5)
+                except Exception as e:
+                    logger.warning(e)
 
-        try:
-            await account.send_message_to(recipient, item.adv_item.text, item.adv_item.photos)
+                try:
+                    await account.send_message_to(recipient, item.adv_item.text, item.adv_item.photos)
+
+                    return True
+                    
+                except Exception as e:
+                    logger.warning(e)
+                    await TelegramChatLogger.send_message_to_chat(
+                        message=f"❌❌ Не можем отправить сообщение пользователю {recipient}: {e}")
+                
+                await asyncio.sleep(5)
+
+        else:
             
-        except Exception as e:
-            logger.warning(e)
+            item.status = AdvRunItemStatus.NOT_ENOUGH_ACCOUNT
+
             await TelegramChatLogger.send_message_to_chat(
-                message=f"❌❌ Не можем отправить сообщение пользователю {recipient}: {e}")
-            
+            message=f"❌❌ Не можем отправить сообщение пользователю {recipient}. Account is none")
+        
+        return False
     
+    async def _run_for_link(self, link, item: AdvRunItemInfo):
+        
+        item.adv_item = self._adv_manager.update_item_info(item.adv_item.id)
+
+        if item.adv_item.publish_time is not None:
+            if await time_manager.get_current_hour() == item.adv_item.publish_time:
+                if not item.adv_item.was_sent:
+                    if await self._send_message_by_item(link, item):
+                        item.adv_item.was_sent = True
+                        self._adv_manager.refresh_item(item.adv_item)
+            else:
+                if item.adv_item.was_sent:
+                    item.adv_item.was_sent = False
+                    self._adv_manager.refresh_item(item.adv_item)
+        else:
+            await self._send_message_by_item(link, item)
+
 
     async def run(self):
         while True:
@@ -80,71 +118,26 @@ class AdvDistributor(metaclass=Singleton):
             logger.info(f"Accounts list: {await self.store.get_accounts()}")
 
             lines = common_tools.read_file(settings.LINKS_PATH)
-            wait_result = 25
 
-            for i, x in enumerate(list(self.run_items_info)):
+            accounts = await self.store.get_accounts()
+
+            if len(lines) > 0 and len(accounts) > 0:
+
                 accounts = await self.store.get_accounts()
-                try:
+
+                for i, x in enumerate(list(self.run_items_info)):
+
                     account = common_tools.get_index_default(accounts, i)
 
                     res_item = self.run_items_info[x]
 
-                    if account is not None:
+                    res_item.account_id = account
 
-                        res_item.account_id = account
+                    for link in lines:
 
-                        if len(lines) > 0:
-
-                            res_item.status = AdvRunItemStatus.RUNNING
-                            
-                            for link in lines:
-
-                                new_status = self.run_items_info.get(x)
-
-                                if new_status is not None:
-                                    if not new_status.adv_item.is_paused:
-                                        if new_status.adv_item.publish_time is None:
-                                            await self._send_message_by_item(link, res_item)
-                                            logger.info(f"x Waiting for {settings.DELAY_BETWEEN_LINKS / len(lines)}")
-                                            await asyncio.sleep(settings.DELAY_BETWEEN_LINKS / len(lines))
-                                        else:
-                                            if await time_manager.get_current_hour() == new_status.adv_item.publish_time:
-                                                await self._send_message_by_item(link, res_item)
-                                                logger.info(f"x Waiting for {settings.DELAY_BETWEEN_LINKS / len(lines)}")
-                                                await asyncio.sleep(settings.DELAY_BETWEEN_LINKS / len(lines))
-                                            else:
-                                                wait_result = 25
-                                    else:
-                                        logger.info(f"Ad with id {x} is paused, skip")
-                                        await self.on_ad_removed(x)
-                                        await asyncio.sleep(0.01)
-                                else:
-                                    logger.info(f"Ad with id {x} was deleted, skip")
-                                    await self.on_ad_removed(x)
-                                    await asyncio.sleep(0.01)
-
-                        else:
-                            res_item.status = AdvRunItemStatus.LINKS_NOT_FOUND
-                            await TelegramChatLogger.send_message_to_chat(
-                                message=f"❌❌ Не можем отправить объявление {res_item.adv_item.name}: список ссылок не найден")
-
-                        wait_result = len(lines) / settings.DELAY_BETWEEN_LINKS
-
-                    else:
-                        res_item.status = AdvRunItemStatus.NOT_ENOUGH_ACCOUNT
-
-                        await TelegramChatLogger.send_message_to_chat(
-                            message=f"❌❌ Не можем отправить объявление {res_item.adv_item.name}: недостаточно аккаунтов")
-
-                        wait_result = 15
-
-                except Exception as e:
-                    logger.critical(f"Cannot send with id: {x}: {e}")
+                        await asyncio.create_task(self._run_for_link(link, res_item))
                 
-                if wait_result < 25:
-                    wait_result = 25
+                await asyncio.sleep(10)
+                #await asyncio.sleep(settings.DELAY_BETWEEN_LINKS if settings.DELAY_BETWEEN_LINKS > settings.MIN_DELAY else settings.MIN_DELAY)
 
-                logger.info(f"Waiting for {wait_result}")
-                await asyncio.sleep(wait_result)
-                
             await asyncio.sleep(5)

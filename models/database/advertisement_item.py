@@ -6,7 +6,7 @@ import enum
 
 
 class AdvertisementItem(SQLModel, table=True):
-    __tablename__ = "advertisement_item"
+    __tablename__ = "advertisement"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     photos: List[str] = Field(sa_column=Column(JSON), default=None)
@@ -15,5 +15,6 @@ class AdvertisementItem(SQLModel, table=True):
     is_paused: bool = False
 
     publish_time: int = None
+    was_sent: bool = False
 
     created_at: datetime = Field(default_factory=datetime.now, nullable=False)

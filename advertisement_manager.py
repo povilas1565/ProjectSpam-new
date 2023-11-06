@@ -7,7 +7,15 @@ from models import *
 import shutil
 import settings
 
-class AdvertisementManager:
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+class AdvertisementManager(metaclass=Singleton):
     def __init__(self):
         self._last_message_time = time.time()
         self._database_manager = DatabaseManager()
@@ -33,7 +41,14 @@ class AdvertisementManager:
         except Exception as e:
             logger.warning(f"Cannot update item info: {e}")
             return None
-
+        
+    def refresh_item(self, item) -> AdvertisementItem:
+        try:
+            return self._database_manager.save_data(item)
+        except Exception as e:
+            logger.warning(f"Cannot refresh item info: {e}")
+            return None
+        
     def get_all_advertisement(self) -> List[AdvertisementItem]:
         return self._database_manager.read_data(AdvertisementItem)
     
