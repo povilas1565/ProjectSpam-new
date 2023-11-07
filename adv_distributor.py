@@ -83,7 +83,7 @@ class AdvDistributor(metaclass=Singleton):
                         await account.send_message_to(recipient, item.adv_item.text, item.adv_item.photos)
 
                         await TelegramChatLogger.send_message_to_chat(
-                            message=f"Успешно отправили сообщение в {recipient}", chat_id=1962810527)
+                            message=f"Успешно отправили {item.adv_item.name} сообщение в {recipient}")
 
                         return True
 
@@ -98,7 +98,7 @@ class AdvDistributor(metaclass=Singleton):
                                                                 reason=e))
 
                             await TelegramChatLogger.send_message_to_chat(
-                                message=f"Аккаунт {item.account_id} больше не будет писать в группу {recipient}")
+                                message=f"✍️ Аккаунт {item.account_id} больше не будет писать в группу {recipient}")
 
                     await asyncio.sleep(random.randint(10, 20))
 
