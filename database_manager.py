@@ -65,7 +65,7 @@ class DatabaseManager(metaclass=Singleton):
             logger.error(f"Error happened: {e}")
 
         return None
-    
+
     def remove_data(self, model, statement):
         try:
             with Session(self._engine) as session:
@@ -77,3 +77,4 @@ class DatabaseManager(metaclass=Singleton):
         except Exception as e:
             logger.error(f"Error happened: {e}")
         return None
+

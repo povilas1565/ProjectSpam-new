@@ -12,7 +12,8 @@ import enum
 from telegram_chat_logger import TelegramChatLogger
 import time_manager
 from advertisement_manager import AdvertisementManager
-
+from database_manager import DatabaseManager
+from models.database import BannedLink
 
 class AdvRunItemStatus(int, enum.Enum):
     NOT_RUNNING = 0
@@ -44,6 +45,7 @@ class AdvDistributor(metaclass=Singleton):
         self.run_items_info = {}
         self._semaphore = asyncio.Semaphore(1)
         self._adv_manager = AdvertisementManager()
+        self._database = DatabaseManager()
 
     async def on_ad_added(self, item: AdvertisementItem) -> bool:
         self.run_items_info[int(item.id)] = AdvRunItemInfo(status=AdvRunItemStatus.NOT_RUNNING, adv_item=item)
@@ -60,37 +62,52 @@ class AdvDistributor(metaclass=Singleton):
 
         logger.info(f"Working with {item}")
 
-        account = await self.store.get_account(item.account_id)
+        result = self._database.read_data(BannedLink, BannedLink.account_id == item.account_id and BannedLink.url == recipient)
 
-        if account is not None:
+        if result is None:
 
-            item.status = AdvRunItemStatus.RUNNING
+            account = await self.store.get_account(item.account_id)
 
-            async with self._semaphore:
-                try:
-                    await account.follow_to(recipient)
-                    await asyncio.sleep(5)
-                except Exception as e:
-                    logger.warning(e)
+            if account is not None:
 
-                try:
-                    await account.send_message_to(recipient, item.adv_item.text, item.adv_item.photos)
+                item.status = AdvRunItemStatus.RUNNING
 
-                    return True
+                async with self._semaphore:
+                    try:
+                        await account.follow_to(recipient)
+                        await asyncio.sleep(5)
+                    except Exception as e:
+                        logger.warning(e)
 
-                except Exception as e:
-                    logger.warning(e)
-                    await TelegramChatLogger.send_message_to_chat(
-                        message=f"❌❌ Не можем отправить сообщение пользователю {recipient}: {e}")
+                    try:
+                        await account.send_message_to(recipient, item.adv_item.text, item.adv_item.photos)
 
-                await asyncio.sleep(random.randint(10, 20))
+                        return True
 
+                    except Exception as e:
+                        logger.warning(e)
+                        await TelegramChatLogger.send_message_to_chat(
+                            message=f"❌❌ Не можем отправить сообщение пользователю {recipient}: {e}")
+
+                        if 'seconds is required before sending another message in this chat' not in str(e):
+                            self._database.save_data(BannedLink(url=recipient,
+                                                                account_id=item.account_id,
+                                                                reason=e))
+
+                            await TelegramChatLogger.send_message_to_chat(
+                                message=f"Аккаунт {item.account_id} больше не будет писать в группу {recipient}")
+
+                    await asyncio.sleep(random.randint(10, 20))
+
+            else:
+
+                item.status = AdvRunItemStatus.NOT_ENOUGH_ACCOUNT
+
+                await TelegramChatLogger.send_message_to_chat(
+                    message=f"❌❌ Не можем отправить сообщение пользователю {recipient}. Account is none")
         else:
-
-            item.status = AdvRunItemStatus.NOT_ENOUGH_ACCOUNT
-
-            await TelegramChatLogger.send_message_to_chat(
-                message=f"❌❌ Не можем отправить сообщение пользователю {recipient}. Account is none")
+            logger.warning(f"Group {recipient} banned for {item.account_id}")
+            return True
 
         return False
 
