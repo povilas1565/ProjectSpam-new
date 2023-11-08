@@ -47,7 +47,7 @@ async def cancel(message: types.Message, state: FSMContext):
         if time_v is None:
             time_v = f"Каждые {settings.DELAY_BETWEEN_LINKS} секунд"
         else:
-            time_v = f"Ежедневно в {value.adv_item.publish_time} по Мадриду"
+            time_v = f"🕒 Ежедневно в {value.adv_item.publish_time} по Мадриду\n"
 
         text += f"📣 {key}. Название объявления: {value.adv_item.name} | {time_v}\n"
 
@@ -77,11 +77,12 @@ async def get_adv_id(message: types.Message, state: FSMContext):
         ad_id = content['ad_id']
 
         if adv_manager.change_ad_publish_time(ad_id, ad_time) is not None:
-            await message.answer(f"🕒 Изменено время публикации объявления {ad_id} на {ad_time} по Мадриду")
+            await message.answer(f"✅ Изменено время публикации объявления {ad_id} на {ad_time} по Мадриду")
         else:
             await message.answer("❌ Не удалось изменить время публикации. Возможно, был введен неверный ID")
 
         return await command_start(message, state)
+
     except Exception as e:
         await message.answer(f"❌ Ошибка валидации: {e}\nПопробуйте еще раз")
 
