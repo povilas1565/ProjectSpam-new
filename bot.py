@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import settings
 
 Path(f"{settings.ACCOUNTS_PATH}/ready").mkdir(parents=True, exist_ok=True)
@@ -6,14 +7,12 @@ Path(f"{settings.DATABASE_PATH}").mkdir(parents=True, exist_ok=True)
 
 import asyncio
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command
 from loguru import logger
-import io
 from aiogram.fsm.context import FSMContext
 import uuid
 import states
 import buttons
-import zipfile
 import os
 import shutil
 from advertisement_manager import AdvertisementManager
@@ -53,7 +52,7 @@ async def cancel(message: types.Message, state: FSMContext):
         text += f"📣 {key}. Название объявления: {value.adv_item.name} | {time_v}\n"
 
     if len(text) > 1:
-        await message.answer(f"{text}\n\nВыберите ID объявления для изменения времени")
+        await message.answer(f"{text}\n\n🚀 Выберите ID объявления для изменения времени")
         await state.set_state(states.AdvertisSettings.select_ad_id)
     else:
         await message.answer(f"📣 В работе объявлений нет")
@@ -64,10 +63,10 @@ async def get_adv_id(message: types.Message, state: FSMContext):
     try:
         ad_id = int(message.text)
         await state.update_data(ad_id=ad_id)
-        await message.answer(f"Хорошо, изменяем время постинга у объявления {ad_id}\n\nВведите время постинга")
+        await message.answer(f"🚀 Хорошо, изменяем время постинга у объявления {ad_id}\n\nВведите время постинга")
         await state.set_state(states.AdvertisSettings.change_ad_time)
     except Exception as e:
-        await message.answer(f"Ошибка валидации: {e}\nПопробуйте еще раз")
+        await message.answer(f"❌ Ошибка валидации: {e}\nПопробуйте еще раз")
 
 @dp.message(states.AdvertisSettings.change_ad_time)
 async def get_adv_id(message: types.Message, state: FSMContext):
@@ -78,13 +77,13 @@ async def get_adv_id(message: types.Message, state: FSMContext):
         ad_id = content['ad_id']
 
         if adv_manager.change_ad_publish_time(ad_id, ad_time) is not None:
-            await message.answer(f"Изменено время публикации объявления {ad_id} на {ad_time} по Мадриду")
+            await message.answer(f"🕒 Изменено время публикации объявления {ad_id} на {ad_time} по Мадриду")
         else:
-            await message.answer("Не удалось изменить время публикации. Возможно, был введен неверный ID")
+            await message.answer("❌ Не удалось изменить время публикации. Возможно, был введен неверный ID")
 
         return await command_start(message, state)
     except Exception as e:
-        await message.answer(f"Ошибка валидации: {e}\nПопробуйте еще раз")
+        await message.answer(f"❌ Ошибка валидации: {e}\nПопробуйте еще раз")
 
 @dp.message(F.text.lower() == "настроить n время")
 async def cancel(message: types.Message, state: FSMContext):
@@ -106,7 +105,7 @@ async def get_adv_id_delete(message: types.Message, state: FSMContext):
         await message.answer(f"Установили новое N время: {settings.DELAY_BETWEEN_LINKS}")
         return await command_start(message, state)
     except Exception as e:
-        await message.answer(f"Ошибка валидации: {e}\nПопробуйте еще раз")
+        await message.answer(f"❌ Ошибка валидации: {e}\nПопробуйте еще раз")
 
 
 @dp.message(F.text.lower() == "статус объявлений")
