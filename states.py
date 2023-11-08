@@ -25,3 +25,7 @@ class AdvertisManager(StatesGroup):
 
 class Settings(StatesGroup):
     n_time = State()
+
+class AdvertisSettings(StatesGroup):
+    select_ad_id = State()
+    change_ad_time = State()

@@ -94,3 +94,16 @@ class AdvertisementManager(metaclass=Singleton):
             logger.error(f"Не можем поставить рекламу с id {id}. Причина: {e}")
         return None
 
+    def change_ad_publish_time(self, id, new_time) -> AdvertisementItem:
+        try:
+            result = self._database_manager.read_data(AdvertisementItem, AdvertisementItem.id == id)
+
+            result.publish_time = new_time
+
+            self._database_manager.save_data(result)
+
+            return result
+        except Exception as e:
+            logger.error(f"Не можем изменить время публикации рекламы с id {id}. Причина: {e}")
+        return None
+

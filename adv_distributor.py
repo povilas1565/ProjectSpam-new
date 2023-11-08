@@ -89,6 +89,7 @@ class AdvDistributor(metaclass=Singleton):
 
                     except Exception as e:
                         logger.warning(e)
+                        
                         await TelegramChatLogger.send_message_to_chat(
                             message=f"❌❌ Не можем отправить сообщение пользователю {recipient}: {e}")
 

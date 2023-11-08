@@ -38,6 +38,54 @@ async def cancel(message: types.Message, state: FSMContext):
     return await command_start(message, state)
 
 
+@dp.message(F.text.lower() == "изменить время постинга")
+async def cancel(message: types.Message, state: FSMContext):
+    text = f""
+
+    for key, value in distributor.run_items_info.items():
+        time_v = value.adv_item.publish_time
+
+        if time_v is None:
+            time_v = f"Каждые {settings.DELAY_BETWEEN_LINKS} секунд"
+        else:
+            time_v = f"Ежедневно в {value.adv_item.publish_time} по Мадриду"
+
+        text += f"📣 {key}. Название объявления: {value.adv_item.name} | {time_v}\n"
+
+    if len(text) > 1:
+        await message.answer(f"{text}\n\nВыберите ID объявления для изменения времени")
+        await state.set_state(states.AdvertisSettings.select_ad_id)
+    else:
+        await message.answer(f"📣 В работе объявлений нет")
+        return await command_start(message, state)
+
+@dp.message(states.AdvertisSettings.select_ad_id)
+async def get_adv_id(message: types.Message, state: FSMContext):
+    try:
+        ad_id = int(message.text)
+        await state.update_data(ad_id=ad_id)
+        await message.answer(f"Хорошо, изменяем время постинга у объявления {ad_id}\n\nВведите время постинга")
+        await state.set_state(states.AdvertisSettings.change_ad_time)
+    except Exception as e:
+        await message.answer(f"Ошибка валидации: {e}\nПопробуйте еще раз")
+
+@dp.message(states.AdvertisSettings.change_ad_time)
+async def get_adv_id(message: types.Message, state: FSMContext):
+    try:
+
+        ad_time = int(message.text)
+        content = await state.get_data()
+        ad_id = content['ad_id']
+
+        if adv_manager.change_ad_publish_time(ad_id, ad_time) is not None:
+            await message.answer(f"Изменено время публикации объявления {ad_id} на {ad_time} по Мадриду")
+        else:
+            await message.answer("Не удалось изменить время публикации. Возможно, был введен неверный ID")
+
+        return await command_start(message, state)
+    except Exception as e:
+        await message.answer(f"Ошибка валидации: {e}\nПопробуйте еще раз")
+
 @dp.message(F.text.lower() == "настроить n время")
 async def cancel(message: types.Message, state: FSMContext):
     await message.answer(

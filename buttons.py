@@ -18,6 +18,9 @@ class Menu:
             types.KeyboardButton(text="Статус аккаунтов"),
             types.KeyboardButton(text="Обновить список аккаунтов"),
         ],
+        [
+            types.KeyboardButton(text="Изменить время постинга"),
+        ]
     ]
 
 class Common:
