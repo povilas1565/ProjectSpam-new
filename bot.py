@@ -52,7 +52,10 @@ async def cancel(message: types.Message, state: FSMContext):
         text += f"📣 {key}. Название объявления: {value.adv_item.name} | 🕒 {time_v}\n"
 
     if len(text) > 1:
-        await message.answer(f"{text}\n\n🚀 Выберите ID объявления для изменения времени")
+        await message.answer(f"{text}\n\n🚀 Выберите ID объявления для изменения времени", reply_markup=types.ReplyKeyboardMarkup(
+            keyboard=buttons.Common.cancel,
+            resize_keyboard=True,
+        ))
         await state.set_state(states.AdvertisSettings.select_ad_id)
     else:
         await message.answer(f"📣 В работе объявлений нет")
@@ -63,7 +66,12 @@ async def get_adv_id(message: types.Message, state: FSMContext):
     try:
         ad_id = int(message.text)
         await state.update_data(ad_id=ad_id)
-        await message.answer(f"🚀 Хорошо, изменяем время постинга у объявления {ad_id}\n\nВведите время постинга")
+        await message.answer(f"🚀 Хорошо, изменяем время постинга у объявления {ad_id}\n\nВведите время постинга",
+                             reply_markup=types.ReplyKeyboardMarkup(
+                                 keyboard=buttons.Common.cancel,
+                                 resize_keyboard=True,
+                             )
+                             )
         await state.set_state(states.AdvertisSettings.change_ad_time)
     except Exception as e:
         await message.answer(f"❌ Ошибка валидации: {e}\nПопробуйте еще раз")
