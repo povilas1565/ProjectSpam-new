@@ -47,9 +47,9 @@ async def cancel(message: types.Message, state: FSMContext):
         if time_v is None:
             time_v = f"Каждые {settings.DELAY_BETWEEN_LINKS} секунд"
         else:
-            time_v = f"🕒 Ежедневно в {value.adv_item.publish_time} по Мадриду\n"
+            time_v = f"Ежедневно в {value.adv_item.publish_time} по Мадриду"
 
-        text += f"📣 {key}. Название объявления: {value.adv_item.name} | {time_v}\n"
+        text += f"📣 {key}. Название объявления: {value.adv_item.name} | 🕒 {time_v}\n"
 
     if len(text) > 1:
         await message.answer(f"{text}\n\n🚀 Выберите ID объявления для изменения времени")
